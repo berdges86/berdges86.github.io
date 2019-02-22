@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <link rel="stylesheet" href="style.css">
+  <script src="script.js"></script>
+  <!-- UIkit CSS -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.0.3/css/uikit.min.css" />
+
+  <!-- UIkit JS -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.0.3/js/uikit.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/uikit/3.0.3/js/uikit-icons.min.js"></script>
+</head>
+
+<body class="uk-padding-large">
+  <div id="fb-root"></div>
+  <script async defer src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v3.2&appId=1516220855314853"></script>
+
+  <ul uk-tab>
+    <li><a href="#">Twitter</a></li>
+    <li><a href="#">Facebook</a></li>
+    <li><a href="#">VK</a></li>
+  </ul>
+
+  <ul class="uk-switcher uk-margin">
+    <li>
+      <a class="twitter-timeline" data-dnt="true" data-theme="light" href="https://twitter.com/gbougakov?ref_src=twsrc%5Etfw" data-chrome="nofooter noborders noheader transparent">Tweets by gbougakov</a>
+      <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+    </li>
+    <li>
+      <div class="fb-page" data-href="https://www.facebook.com/georgenetinc/" data-tabs="timeline" data-small-header="true" data-adapt-container-width="true" data-hide-cover="true" data-show-facepile="true">
+        <blockquote cite="https://www.facebook.com/georgenetinc/" class="fb-xfbml-parse-ignore"><a href="https://www.facebook.com/georgenetinc/">GeorgeNet Inc.</a></blockquote>
+      </div>
+    </li>
+    <li>
+      <script type="text/javascript" src="https://vk.com/js/api/openapi.js?160"></script>
+
+      <!-- VK Widget -->
+      <div id="vk_groups"></div>
+      <script type="text/javascript">
+        VK.Widgets.Group("vk_groups", {
+          mode: 4,
+          wide: 1,
+          no_cover: 1,
+          height: "1000"
+        }, 24671628);
+      </script>
+    </li>
+  </ul>
+
+</body>
+
+</html>
