@@ -374,16 +374,7 @@
                 e.period = t
             }
             ,
-            e.cleanWeeks = function(t) {
-                var n = moment()
-                  , a = [];
-                return e.badWeeks = [],
-                _.forEach(t, function(t) {
-                    var s = _.find(e.weeks, {
-                        week_number: t
-                    });
-                    n.isAfter(s.begin_date) || n.isSame(s.begin_date) ? e.badWeeks.push(t) : a.push(t)
-                }),
+       
                 a
             }
             ,
