@@ -97,11 +97,11 @@ async function __main__() {
         }
         "19";
         if (RS_in("left", k)) {
-            v3.x=v3.x["-"](dv);
+            v3.x=v3.x["+"](dv);
         }
         "20";
         if (RS_in("left", k)) {
-            ball.pos=ball.pos["+"](v3["*"](dt));
+            ball.pos=ball.pos["-"](v3["*"](dt));
         }
         "21";
         if (RS_in("left", k)) {
@@ -121,65 +121,69 @@ async function __main__() {
         }
         "26";
         if (RS_in("right", k)) {
-            ball.pos=ball.pos["+"](v2["*"](dt));
+            v2.x=v2.x["+"](dv);
         }
         "27";
         if (RS_in("right", k)) {
-            v1=v1["*"](0);
+            ball.pos=ball.pos["+"](v2["*"](dt));
         }
         "28";
         if (RS_in("right", k)) {
-            v3=v3["*"](0);
+            v1=v1["*"](0);
         }
         "29";
         if (RS_in("right", k)) {
-            v4=v4["*"](0);
+            v3=v3["*"](0);
         }
-        "31";
-        if (RS_in("down", k)) {
-            RS_interpolate_kwargs.call(ball, ball.rotate, [RS_desugar_kwargs({angle: .1, axis: vec(.5, 0, 0)})]);
+        "30";
+        if (RS_in("right", k)) {
+            v4=v4["*"](0);
         }
         "32";
         if (RS_in("down", k)) {
-            v1.y=v1.y["+"](dv);
+            RS_interpolate_kwargs.call(ball, ball.rotate, [RS_desugar_kwargs({angle: .1, axis: vec(.5, 0, 0)})]);
         }
         "33";
         if (RS_in("down", k)) {
-            ball.pos=ball.pos["-"](v1["*"](dt));
+            v1.y=v1.y["+"](dv);
         }
         "34";
         if (RS_in("down", k)) {
-            v2=v2["*"](0);
+            ball.pos=ball.pos["-"](v1["*"](dt));
         }
         "35";
         if (RS_in("down", k)) {
-            v3=v3["*"](0);
+            v2=v2["*"](0);
         }
         "36";
         if (RS_in("down", k)) {
-            v4=v4["*"](0);
+            v3=v3["*"](0);
         }
-        "38";
-        if (RS_in("up", k)) {
-            RS_interpolate_kwargs.call(ball, ball.rotate, [RS_desugar_kwargs({angle: .1, axis: vec(.5["-u"](), 0, 0)})]);
+        "37";
+        if (RS_in("down", k)) {
+            v4=v4["*"](0);
         }
         "39";
         if (RS_in("up", k)) {
-            v2.y=v2.y["+"](dv);
+            RS_interpolate_kwargs.call(ball, ball.rotate, [RS_desugar_kwargs({angle: .1, axis: vec(.5["-u"](), 0, 0)})]);
         }
         "40";
         if (RS_in("up", k)) {
-            ball.pos=ball.pos["+"](v2["*"](dt));
+            v2.y=v2.y["+"](dv);
         }
         "41";
         if (RS_in("up", k)) {
-            v1=v1["*"](0);
+            ball.pos=ball.pos["+"](v2["*"](dt));
         }
         "42";
         if (RS_in("up", k)) {
-            v3=v3["*"](0);
+            v1=v1["*"](0);
         }
         "43";
+        if (RS_in("up", k)) {
+            v3=v3["*"](0);
+        }
+        "44";
         if (RS_in("up", k)) {
             v4=v4["*"](0);
         }
