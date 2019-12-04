@@ -1,0 +1,342 @@
+
+<div id="glowscript" class="glowscript">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link type="text/css" href="https://s3.amazonaws.com/glowscript/css/redmond/2.1/jquery-ui.custom.css" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css?family=Inconsolata" rel="stylesheet" type="text/css" />
+<link type="text/css" href="https://s3.amazonaws.com/glowscript/css/ide.css" rel="stylesheet" />
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/lib/jquery/2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/package/glow.2.9.min.js"></script>
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/package/RSrun.2.9.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+
+// START JAVASCRIPT
+;(function() {;
+var RS_modules = {};
+RS_modules.pythonize = {};
+
+(function(){
+    function strings() {
+        var string_funcs, exclude, name;
+        string_funcs = set("capitalize strip lstrip rstrip islower isupper isspace lower upper swapcase center count endswith startswith find rfind index rindex format join ljust rjust partition rpartition replace split rsplit splitlines zfill".split(" "));
+        if (!arguments.length) {
+            exclude = (function(){
+                var s = RS_set();
+                s.jsset.add("split");
+                s.jsset.add("replace");
+                return s;
+            })();
+        } else if (arguments[0]) {
+            exclude = Array.prototype.slice.call(arguments);
+        } else {
+            exclude = null;
+        }
+        if (exclude) {
+            string_funcs = string_funcs.difference(set(exclude));
+        }
+        var RS_Iter0 = string_funcs;
+        RS_Iter0 = ((typeof RS_Iter0[Symbol.iterator] === "function") ? (RS_Iter0 instanceof Map ? RS_Iter0.keys() : RS_Iter0) : Object.keys(RS_Iter0));
+        for (var RS_Index0 of RS_Iter0) {
+            name = RS_Index0;
+            (RS_expr_temp = String.prototype)[(typeof name === "number" && name < 0) ? RS_expr_temp.length + name : name] = (RS_expr_temp = RS_str.prototype)[(typeof name === "number" && name < 0) ? RS_expr_temp.length + name : name];
+        }
+    };
+
+    RS_modules.pythonize.strings = strings;
+})();
+async function __main__() {
+    var version, box, sphere, simple_sphere, cylinder, pyramid, cone, helix, ellipsoid, ring, arrow, compound, display, vector, print, arange, type, scene, RS_ls, mybox1, mybox2, mybox3, mybox4, mybox5, mybox6, mybox7, mybox8, mybox21, mybox22, mybox23, mybox24, mybox25, mybox26, mybox27, mybox28, mybox11, mybox12, mybox13, mybox14, mybox15, mybox16, mybox17, mybox18, mybox31, mybox32, mybox33, mybox34, mybox35, mybox36, mybox37, mybox38, mybox41, mybox42, mybox43, mybox44, mybox45, mybox46, mybox47, mybox48, mybox51, mybox52, mybox53, mybox54, mybox55, mybox56, mybox57, mybox58, mybox61, mybox62, mybox63, mybox64, mybox65, mybox66, mybox67, mybox68, mybox71, mybox72, mybox73, mybox74, mybox75, mybox76, mybox77, mybox78;
+    version = RS_list_decorate([ "2.9", "glowscript" ]);
+    Array.prototype['+']=function(r) {return this.concat(r)}
+    Array.prototype['*']=function(r) {return __array_times_number(this, r)}
+    window.__GSlang = "vpython";
+    box = vp_box;
+    sphere = vp_sphere;
+    simple_sphere = vp_simple_sphere;
+    cylinder = vp_cylinder;
+    pyramid = vp_pyramid;
+    cone = vp_cone;
+    helix = vp_helix;
+    ellipsoid = vp_ellipsoid;
+    ring = vp_ring;
+    arrow = vp_arrow;
+    compound = vp_compound;
+    display = canvas;
+    vector = vec;
+    print = GSprint;
+    arange = range;
+    type = pytype;
+    scene = canvas();
+    var strings = RS_modules.pythonize.strings;
+
+    strings();
+    "3";
+    mybox1 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 0, 0)})]);
+    "4";
+    mybox2 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 2, 0)})]);
+    "5";
+    mybox3 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 4, 0)})]);
+    "6";
+    mybox4 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 6, 0)})]);
+    "7";
+    mybox5 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 8, 0)})]);
+    "8";
+    mybox6 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 10, 0)})]);
+    "9";
+    mybox7 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 12, 0)})]);
+    "10";
+    mybox8 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(0, 14, 0)})]);
+    "12";
+    mybox21 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 0, 0)})]);
+    "13";
+    mybox22 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 2, 0)})]);
+    "14";
+    mybox23 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 4, 0)})]);
+    "15";
+    mybox24 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 6, 0)})]);
+    "16";
+    mybox25 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 8, 0)})]);
+    "17";
+    mybox26 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 10, 0)})]);
+    "18";
+    mybox27 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 12, 0)})]);
+    "19";
+    mybox28 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(14, 14, 0)})]);
+    "21";
+    mybox11 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 0, 0)})]);
+    "22";
+    mybox12 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 2, 0)})]);
+    "23";
+    mybox13 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 4, 0)})]);
+    "24";
+    mybox14 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 6, 0)})]);
+    "25";
+    mybox15 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 8, 0)})]);
+    "26";
+    mybox16 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 10, 0)})]);
+    "27";
+    mybox17 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 12, 0)})]);
+    "28";
+    mybox18 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(2, 14, 0)})]);
+    "30";
+    mybox31 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 0, 0)})]);
+    "31";
+    mybox32 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 2, 0)})]);
+    "32";
+    mybox33 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 4, 0)})]);
+    "33";
+    mybox34 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 6, 0)})]);
+    "34";
+    mybox35 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 8, 0)})]);
+    "35";
+    mybox36 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 10, 0)})]);
+    "36";
+    mybox37 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 12, 0)})]);
+    "37";
+    mybox38 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(4, 14, 0)})]);
+    "39";
+    mybox41 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 0, 0)})]);
+    "40";
+    mybox42 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 2, 0)})]);
+    "41";
+    mybox43 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 4, 0)})]);
+    "42";
+    mybox44 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 6, 0)})]);
+    "43";
+    mybox45 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 8, 0)})]);
+    "44";
+    mybox46 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 10, 0)})]);
+    "45";
+    mybox47 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 12, 0)})]);
+    "46";
+    mybox48 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(6, 14, 0)})]);
+    "48";
+    mybox51 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 0, 0)})]);
+    "49";
+    mybox52 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 2, 0)})]);
+    "50";
+    mybox53 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 4, 0)})]);
+    "51";
+    mybox54 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 6, 0)})]);
+    "52";
+    mybox55 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 8, 0)})]);
+    "53";
+    mybox56 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 10, 0)})]);
+    "54";
+    mybox57 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 12, 0)})]);
+    "55";
+    mybox58 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(8, 14, 0)})]);
+    "57";
+    mybox61 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 0, 0)})]);
+    "58";
+    mybox62 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 2, 0)})]);
+    "59";
+    mybox63 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 4, 0)})]);
+    "60";
+    mybox64 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 6, 0)})]);
+    "61";
+    mybox65 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 8, 0)})]);
+    "62";
+    mybox66 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 10, 0)})]);
+    "63";
+    mybox67 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 12, 0)})]);
+    "64";
+    mybox68 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(10, 14, 0)})]);
+    "66";
+    mybox71 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 0, 0)})]);
+    "67";
+    mybox72 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 2, 0)})]);
+    "68";
+    mybox73 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 4, 0)})]);
+    "69";
+    mybox74 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 6, 0)})]);
+    "70";
+    mybox75 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 8, 0)})]);
+    "71";
+    mybox76 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 10, 0)})]);
+    "72";
+    mybox77 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 12, 0)})]);
+    "73";
+    mybox78 = RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(12, 14, 0)})]);
+    "75";
+    while (true) {
+        "76";
+        ;(await rate(100));
+        "77";
+        RS_interpolate_kwargs.call(mybox1, mybox1.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "78";
+        RS_interpolate_kwargs.call(mybox2, mybox2.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1)})]);
+        "79";
+        RS_interpolate_kwargs.call(mybox3, mybox3.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 0)})]);
+        "80";
+        RS_interpolate_kwargs.call(mybox4, mybox4.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 1)})]);
+        "81";
+        RS_interpolate_kwargs.call(mybox5, mybox5.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 0)})]);
+        "82";
+        RS_interpolate_kwargs.call(mybox6, mybox6.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 1)})]);
+        "83";
+        RS_interpolate_kwargs.call(mybox7, mybox7.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1, 0)})]);
+        "84";
+        RS_interpolate_kwargs.call(mybox8, mybox8.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1, 1)})]);
+        "86";
+        RS_interpolate_kwargs.call(mybox11, mybox11.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "87";
+        RS_interpolate_kwargs.call(mybox12, mybox12.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1["-u"]())})]);
+        "88";
+        RS_interpolate_kwargs.call(mybox13, mybox13.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 0)})]);
+        "89";
+        RS_interpolate_kwargs.call(mybox14, mybox14.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 1["-u"]())})]);
+        "90";
+        RS_interpolate_kwargs.call(mybox15, mybox15.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 0)})]);
+        "91";
+        RS_interpolate_kwargs.call(mybox16, mybox16.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 1["-u"]())})]);
+        "92";
+        RS_interpolate_kwargs.call(mybox17, mybox17.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1, 0)})]);
+        "93";
+        RS_interpolate_kwargs.call(mybox18, mybox18.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1, 1["-u"]())})]);
+        "95";
+        RS_interpolate_kwargs.call(mybox31, mybox31.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "96";
+        RS_interpolate_kwargs.call(mybox32, mybox32.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1)})]);
+        "97";
+        RS_interpolate_kwargs.call(mybox33, mybox33.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 0)})]);
+        "98";
+        RS_interpolate_kwargs.call(mybox34, mybox34.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 1)})]);
+        "99";
+        RS_interpolate_kwargs.call(mybox35, mybox35.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 0)})]);
+        "100";
+        RS_interpolate_kwargs.call(mybox36, mybox36.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 1)})]);
+        "101";
+        RS_interpolate_kwargs.call(mybox37, mybox37.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1["-u"](), 0)})]);
+        "102";
+        RS_interpolate_kwargs.call(mybox38, mybox38.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1["-u"](), 1)})]);
+        "104";
+        RS_interpolate_kwargs.call(mybox41, mybox41.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "105";
+        RS_interpolate_kwargs.call(mybox42, mybox42.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1)})]);
+        "106";
+        RS_interpolate_kwargs.call(mybox43, mybox43.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 0)})]);
+        "107";
+        RS_interpolate_kwargs.call(mybox44, mybox44.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 1)})]);
+        "108";
+        RS_interpolate_kwargs.call(mybox45, mybox45.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 0)})]);
+        "109";
+        RS_interpolate_kwargs.call(mybox46, mybox46.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 1)})]);
+        "110";
+        RS_interpolate_kwargs.call(mybox47, mybox47.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1, 0)})]);
+        "111";
+        RS_interpolate_kwargs.call(mybox48, mybox48.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1, 1)})]);
+        "113";
+        RS_interpolate_kwargs.call(mybox51, mybox51.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "114";
+        RS_interpolate_kwargs.call(mybox52, mybox52.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1)})]);
+        "115";
+        RS_interpolate_kwargs.call(mybox53, mybox53.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 0)})]);
+        "116";
+        RS_interpolate_kwargs.call(mybox54, mybox54.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 1)})]);
+        "117";
+        RS_interpolate_kwargs.call(mybox55, mybox55.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 0)})]);
+        "118";
+        RS_interpolate_kwargs.call(mybox56, mybox56.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 1)})]);
+        "119";
+        RS_interpolate_kwargs.call(mybox57, mybox57.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1["-u"](), 0)})]);
+        "120";
+        RS_interpolate_kwargs.call(mybox58, mybox58.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1["-u"](), 1)})]);
+        "122";
+        RS_interpolate_kwargs.call(mybox61, mybox61.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "123";
+        RS_interpolate_kwargs.call(mybox62, mybox62.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1["-u"]())})]);
+        "124";
+        RS_interpolate_kwargs.call(mybox63, mybox63.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 0)})]);
+        "125";
+        RS_interpolate_kwargs.call(mybox64, mybox64.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1, 1["-u"]())})]);
+        "126";
+        RS_interpolate_kwargs.call(mybox65, mybox65.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 0)})]);
+        "127";
+        RS_interpolate_kwargs.call(mybox66, mybox66.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 1["-u"]())})]);
+        "128";
+        RS_interpolate_kwargs.call(mybox67, mybox67.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1, 0)})]);
+        "129";
+        RS_interpolate_kwargs.call(mybox68, mybox68.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1, 1["-u"]())})]);
+        "131";
+        RS_interpolate_kwargs.call(mybox71, mybox71.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "132";
+        RS_interpolate_kwargs.call(mybox72, mybox72.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1["-u"]())})]);
+        "133";
+        RS_interpolate_kwargs.call(mybox73, mybox73.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 0)})]);
+        "134";
+        RS_interpolate_kwargs.call(mybox74, mybox74.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 1["-u"]())})]);
+        "135";
+        RS_interpolate_kwargs.call(mybox75, mybox75.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 0)})]);
+        "136";
+        RS_interpolate_kwargs.call(mybox76, mybox76.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 0, 1["-u"]())})]);
+        "137";
+        RS_interpolate_kwargs.call(mybox77, mybox77.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1["-u"](), 0)})]);
+        "138";
+        RS_interpolate_kwargs.call(mybox78, mybox78.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1, 1["-u"](), 1["-u"]())})]);
+        "140";
+        RS_interpolate_kwargs.call(mybox21, mybox21.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 0)})]);
+        "141";
+        RS_interpolate_kwargs.call(mybox22, mybox22.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 0, 1["-u"]())})]);
+        "142";
+        RS_interpolate_kwargs.call(mybox23, mybox23.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 0)})]);
+        "143";
+        RS_interpolate_kwargs.call(mybox24, mybox24.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(0, 1["-u"](), 1["-u"]())})]);
+        "144";
+        RS_interpolate_kwargs.call(mybox25, mybox25.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 0)})]);
+        "145";
+        RS_interpolate_kwargs.call(mybox26, mybox26.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 0, 1["-u"]())})]);
+        "146";
+        RS_interpolate_kwargs.call(mybox27, mybox27.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1["-u"](), 0)})]);
+        "147";
+        RS_interpolate_kwargs.call(mybox28, mybox28.rotate, [RS_desugar_kwargs({angle: .5, axis: vector(1["-u"](), 1["-u"](), 1["-u"]())})]);
+        "149";
+        ;(await sleep(.1));
+    }
+};
+
+;$(function(){ window.__context = { glowscript_container: $("#glowscript").removeAttr("id") }; __main__() })})()
+// END JAVASCRIPT
+
+//--><!]]></script>
+</div>
