@@ -1,0 +1,85 @@
+GlowScript 2.9 VPython
+scene.width = 1280   # default is 640
+scene.height = 720  # default is 400
+
+side = 4.0
+thk =0.2
+s2 = 2*side - thk
+s3 = 4*side + thk
+bu=0
+bu=bu - 1
+wallR = box (pos=vector( 2*side, 0, 0), size=vector(thk, s2, 1),  color = color.red)
+wallL = box (pos=vector(-2*side, 0, 0), size=vector(thk, s2, 1),  color = color.red)
+wallB = box (pos=vector(0, -side, 0), size=vector(s3, thk, 1),  color = color.blue)
+wallT = box (pos=vector(0,  side, 0), size=vector(s3, thk, 1),  color = color.blue)
+wallBK = box(pos=vector(0, 0, -1), size=vector(1, 2*side, 1), color = color.cyan)
+
+player1=box (pos=vector( -2*side+thk, 0, 0), size=vector(thk, 2, 1),  color = color.green)
+player2=box (pos=vector( 2*side-thk, 0, 0), size=vector(thk, 2, 1),  color = color.white)
+
+ball = sphere (color = color.green, radius = 0.4, retain=200)
+ball.mass = 0.3
+ball.p = vector (-0.15, -0.23, 0)
+
+side = side - thk*0.5 - ball.radius
+
+dt = 0.01
+dtb=0.3
+
+
+
+
+
+
+v = vec(0,0,0)
+plspeed = 0.2
+
+
+
+while True:
+    rate(30)
+    move()
+    secoord()
+    control_player1()
+    control_player2()
+    player1_rules()
+    player2_rules()
+    
+def player1_rules():
+    if abs(ball.pos.x -player1.pos.x)<0.3 and abs(ball.pos.y -player1.pos.y)<0.3    :
+        ball.p.x = -ball.p.x
+def player2_rules():
+    if abs(ball.pos.x -player2.pos.x)<0.3 and abs(ball.pos.y -player2.pos.y)<0.3    :
+        ball.p.x = -ball.p.x
+
+def move():
+    ball.pos = ball.pos + (ball.p/ball.mass)*dtb
+    if not (side > ball.pos.y > -side):
+        ball.p.y = -ball.p.y
+def secoord():
+    print("The vector ball =", ball.pos, ".")
+    print("X coordinate =", ball.pos.x, ".")
+    print("Y coordinate=", ball.pos.y, ".")  
+    
+    
+def control_player1():
+    k = keysdown() # a list of keys that are down
+    if 'w' in k:
+        player1.pos.y += plspeed
+
+    if 's' in k:
+        player1.pos.y -= plspeed
+
+def control_player2():
+    k = keysdown() # a list of keys that are down
+    if 'up' in k:
+        player2.pos.y += plspeed
+
+    if 'down' in k:
+        player2.pos.y -= plspeed
+
+
+
+
+
+    
