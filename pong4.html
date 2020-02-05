@@ -117,154 +117,164 @@ async function __main__() {
     v = vec(0, 0, 0);
     "27";
     plspeed = .2;
-    "28";
-    ;(await game());
     "29";
+    ;(await game());
+    "30";
     async function game() {
-        var RS_ls, x, scoreP1, scoreP2, k;
-        "30";
-        x = 1;
+        var RS_ls, x, scoreP1, scoreP2, direction, t3, t1, t2, k;
         "31";
-        scoreP1 = 0;
+        x = 1;
         "32";
-        scoreP2 = 0;
+        scoreP1 = 0;
         "33";
+        scoreP2 = 0;
+        "34";
+        direction = random();
+        "35";
+        ball.p = vector(.15["-u"](), .23["*"](direction), 0);
+        "37";
+        t3 = RS_interpolate_kwargs.call(this, label, [RS_desugar_kwargs({text: "HELLO", pos: vector(0, 1, 0), align: "center", color: color.green})]);
+        "38";
+        t1 = RS_interpolate_kwargs.call(this, label, [RS_desugar_kwargs({text: scoreP1, pos: vector(3["-u"](), 0, 0), align: "center", color: color.green})]);
+        "39";
+        t2 = RS_interpolate_kwargs.call(this, label, [RS_desugar_kwargs({text: scoreP1, pos: vector(3, 0, 0), align: "center", color: color.green})]);
+        "40";
         if (scoreP1["<"](2) || scoreP2["<"](2)) {
-            "34";
+            "41";
             while (true) {
-                "35";
-                ;(await rate(30));
-                "36";
-                ;(await move());
-                "38";
-                ;(await control_player1());
-                "39";
-                ;(await control_player2());
-                "40";
-                ;(await player1_rules());
-                "41";
-                ;(await player2_rules());
                 "42";
+                ;(await rate(30));
+                "43";
+                ;(await move());
+                "45";
+                ;(await control_player1());
+                "46";
+                ;(await control_player2());
+                "47";
+                ;(await player1_rules());
+                "48";
+                ;(await player2_rules());
+                "50";
                 if (abs(ball.pos.x["-"](wallL.pos.x))["<"](.05)) {
-                    "43";
-                    scoreP1 = scoreP1["+"](1);
-                    "44";
-                    print("scoreP1", scoreP1);
-                    "45";
-                    ball.pos = vector(0, 0, 0);
-                    "46";
-                }
-                if (abs(ball.pos.x["-"](wallR.pos.x))["<"](.05)) {
-                    "47";
-                    scoreP2 = scoreP2["+"](1);
-                    "48";
-                    ball.pos = vector(0, 0, 0);
-                    "49";
-                    print("scoreP2", scoreP2);
-                    "50";
-                }
-                if (scoreP1[">"](2) || scoreP2[">"](2)) {
                     "51";
-                    print("You Lose");
+                    scoreP1 = scoreP1["+"](1);
                     "52";
                     ball.pos = vector(0, 0, 0);
                     "53";
-                    ball.p = vector(0, 0, 0);
+                    t1.text = scoreP1;
                     "54";
-                    ;(await game());
                 }
-                "55";
-                k = keysdown();
-                "56";
-                if (RS_in("g", k)) {
+                if (abs(ball.pos.x["-"](wallR.pos.x))["<"](.05)) {
+                    "55";
+                    scoreP2 = scoreP2["+"](1);
+                    "56";
+                    ball.pos = vector(0, 0, 0);
                     "57";
-                    x = x["*"](1["-u"]());
+                    t2.text = scoreP2;
                     "58";
-                    ball.p = vector(.15["-u"]()["*"](x), .23["*"](random()), 0);
+                }
+                if (scoreP1[">"](2) || scoreP2[">"](2)) {
+                    "59";
+                    t3.text = "You LOSE\n Prees G to restart";
+                    "60";
+                    ball.pos = vector(0, 0, 0);
+                    "61";
+                    ball.p = vector(0, 0, 0);
+                }
+                "63";
+                k = keysdown();
+                "64";
+                if (RS_in("g", k)) {
+                    "65";
+                    x = x["*"](1["-u"]());
+                    "66";
+                    t3.text = "";
+                    "67";
+                    ;(await game());
                 }
             }
         }
     };
 
-    "61";
+    "71";
     async function player1_rules() {
-        "62";
-        if (abs(ball.pos.x["-"](player1.pos.x))["<"](.3) && abs(ball.pos.y["-"](player1.pos.y))["<"](.4)) {
-            "63";
+        "72";
+        if (abs(ball.pos.x["-"](player1.pos.x))["<"](.3) && abs(ball.pos.y["-"](player1.pos.y))["<"](1.5)) {
+            "73";
             ball.p.x = ball.p.x["-u"]();
-            "64";
+            "74";
         }
         if (abs(player1.pos.y["-"](wallT.pos.y))["<"](.9)) {
-            "65";
+            "75";
             player1.pos.y = player1.pos.y["-"](.2);
-            "66";
+            "76";
         }
         if (abs(player1.pos.y["-"](wallB.pos.y))["<"](.9)) {
-            "67";
+            "77";
             player1.pos.y = player1.pos.y["+"](.2);
         }
     };
 
-    "68";
+    "78";
     async function player2_rules() {
-        "69";
-        if (abs(ball.pos.x["-"](player2.pos.x))["<"](.3) && abs(ball.pos.y["-"](player2.pos.y))["<"](.4)) {
-            "70";
+        "79";
+        if (abs(ball.pos.x["-"](player2.pos.x))["<"](.3) && abs(ball.pos.y["-"](player2.pos.y))["<"](1.5)) {
+            "80";
             ball.p.x = ball.p.x["-u"]();
-            "71";
+            "81";
         }
         if (abs(player2.pos.y["-"](wallT.pos.y))["<"](.9)) {
-            "72";
+            "82";
             player2.pos.y = player2.pos.y["-"](.2);
-            "73";
+            "83";
         }
         if (abs(player2.pos.y["-"](wallB.pos.y))["<"](.9)) {
-            "74";
+            "84";
             player2.pos.y = player2.pos.y["+"](.2);
         }
     };
 
-    "75";
+    "85";
     async function move() {
-        "76";
+        "86";
         ball.pos = ball.pos["+"](ball.p["/"](ball.mass)["*"](dtb));
-        "77";
+        "87";
         if (!(side[">"](RS_cond_temp = ball.pos.y) && RS_cond_temp[">"](side["-u"]()))) {
-            "78";
+            "88";
             ball.p.y = ball.p.y["-u"]();
         }
     };
 
-    "83";
+    "93";
     async function control_player1() {
         var RS_ls, k;
-        "84";
+        "94";
         k = keysdown();
-        "85";
+        "95";
         if (RS_in("w", k)) {
-            "86";
+            "96";
             player1.pos.y=player1.pos.y["+"](plspeed);
-            "87";
+            "97";
         }
         if (RS_in("s", k)) {
-            "88";
+            "98";
             player1.pos.y=player1.pos.y["-"](plspeed);
         }
     };
 
-    "89";
+    "99";
     async function control_player2() {
         var RS_ls, k;
-        "90";
+        "100";
         k = keysdown();
-        "91";
+        "101";
         if (RS_in("up", k)) {
-            "92";
+            "102";
             player2.pos.y=player2.pos.y["+"](plspeed);
-            "93";
+            "103";
         }
         if (RS_in("down", k)) {
-            "94";
+            "104";
             player2.pos.y=player2.pos.y["-"](plspeed);
         }
     };
