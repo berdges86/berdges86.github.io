@@ -12,6 +12,7 @@
 // START JAVASCRIPT
 ;(function() {;
 var RS_modules = {};
+var b1, b2;
 RS_modules.pythonize = {};
 
 (function(){
@@ -121,161 +122,237 @@ async function __main__() {
     ;(await game());
     "30";
     async function game() {
-        var RS_ls, x, scoreP1, scoreP2, direction, t3, t1, t2, k;
+        var RS_ls, scoreP1, scoreP2, direction, t3, t1, t2, k;
         "31";
-        x = 1;
-        "32";
         scoreP1 = 0;
-        "33";
+        "32";
         scoreP2 = 0;
-        "34";
+        "33";
         direction = random();
-        "35";
-        ball.p = vector(.15["-u"](), .23["*"](direction), 0);
-        "37";
+        "36";
         t3 = RS_interpolate_kwargs.call(this, label, [RS_desugar_kwargs({text: "HELLO", pos: vector(0, 1, 0), align: "center", color: color.green})]);
-        "38";
+        "37";
         t1 = RS_interpolate_kwargs.call(this, label, [RS_desugar_kwargs({text: scoreP1, pos: vector(3["-u"](), 0, 0), align: "center", color: color.green})]);
-        "39";
+        "38";
         t2 = RS_interpolate_kwargs.call(this, label, [RS_desugar_kwargs({text: scoreP1, pos: vector(3, 0, 0), align: "center", color: color.green})]);
-        "40";
+        "39";
         if (scoreP1["<"](2) || scoreP2["<"](2)) {
-            "41";
+            "40";
             while (true) {
-                "42";
+                "41";
                 ;(await rate(30));
-                "43";
+                "42";
                 ;(await move());
-                "45";
+                "43";
                 ;(await control_player1());
-                "46";
+                "44";
                 ;(await control_player2());
-                "47";
+                "45";
                 ;(await player1_rules());
-                "48";
+                "46";
                 ;(await player2_rules());
-                "50";
-                if (abs(ball.pos.x["-"](wallL.pos.x))["<"](.05)) {
-                    "51";
+                "48";
+                if (abs(ball.pos.x["-"](wallL.pos.x))["<"](.1)) {
+                    "49";
                     scoreP1 = scoreP1["+"](1);
-                    "52";
+                    "50";
                     ball.pos = vector(0, 0, 0);
-                    "53";
+                    "51";
                     t1.text = scoreP1;
-                    "54";
+                    "52";
                 }
-                if (abs(ball.pos.x["-"](wallR.pos.x))["<"](.05)) {
-                    "55";
+                if (abs(ball.pos.x["-"](wallR.pos.x))["<"](.1)) {
+                    "53";
                     scoreP2 = scoreP2["+"](1);
-                    "56";
+                    "54";
                     ball.pos = vector(0, 0, 0);
-                    "57";
+                    "55";
                     t2.text = scoreP2;
-                    "58";
+                    "56";
                 }
                 if (scoreP1[">"](2) || scoreP2[">"](2)) {
-                    "59";
+                    "57";
                     t3.text = "You LOSE\n Prees G to restart";
-                    "60";
+                    "58";
                     ball.pos = vector(0, 0, 0);
-                    "61";
+                    "59";
                     ball.p = vector(0, 0, 0);
                 }
-                "63";
+                "61";
                 k = keysdown();
-                "64";
+                "62";
                 if (RS_in("g", k)) {
-                    "65";
-                    x = x["*"](1["-u"]());
-                    "66";
+                    "63";
                     t3.text = "";
-                    "67";
+                    "64";
+                    direction = random();
+                    "65";
+                    ball.p = vector(.15["-u"](), .23["*"](direction), 0);
+                    "66";
                     ;(await game());
                 }
             }
         }
     };
 
-    "71";
+    "69";
     async function player1_rules() {
-        "72";
-        if (abs(ball.pos.x["-"](player1.pos.x))["<"](.3) && abs(ball.pos.y["-"](player1.pos.y))["<"](1.5)) {
-            "73";
-            ball.p.x = ball.p.x["-u"]();
-            "74";
+        var RS_ls, direction;
+        "70";
+        if (abs(ball.pos.x["-"](player1.pos.x))["<"](.4) && abs(ball.pos.y["-"](player1.pos.y))["<"](1.3) && abs(ball.pos.y["-"](player1.pos.y))[">"](.5)) {
+            "71";
+            if ((b1 === 1 || typeof b1 === "object" && RS_equals(b1, 1))) {
+                "72";
+                ball.color = color.red;
+                "73";
+                direction = random();
+                "74";
+                ball.p.y = abs(ball.p.y);
+                "75";
+                ball.p.x = ball.p.x["-u"]();
+                "76";
+            }
+            if ((b1 === 0 || typeof b1 === "object" && RS_equals(b1, 0))) {
+                "77";
+                ball.color = color.blue;
+                "78";
+                ball.p.y = abs(ball.p.y)["-u"]();
+                "79";
+                ball.p.x = ball.p.x["-u"]();
+                "82";
+            }
         }
-        if (abs(player1.pos.y["-"](wallT.pos.y))["<"](.9)) {
-            "75";
-            player1.pos.y = player1.pos.y["-"](.2);
-            "76";
-        }
-        if (abs(player1.pos.y["-"](wallB.pos.y))["<"](.9)) {
-            "77";
-            player1.pos.y = player1.pos.y["+"](.2);
-        }
-    };
-
-    "78";
-    async function player2_rules() {
-        "79";
-        if (abs(ball.pos.x["-"](player2.pos.x))["<"](.3) && abs(ball.pos.y["-"](player2.pos.y))["<"](1.5)) {
-            "80";
-            ball.p.x = ball.p.x["-u"]();
-            "81";
-        }
-        if (abs(player2.pos.y["-"](wallT.pos.y))["<"](.9)) {
-            "82";
-            player2.pos.y = player2.pos.y["-"](.2);
+        if (abs(player1.pos.y["-"](wallT.pos.y))["<"](1)) {
             "83";
-        }
-        if (abs(player2.pos.y["-"](wallB.pos.y))["<"](.9)) {
+            player1.pos.y = player1.pos.y["-"](.2);
             "84";
-            player2.pos.y = player2.pos.y["+"](.2);
+        }
+        if (abs(player1.pos.y["-"](wallB.pos.y))["<"](1)) {
+            "85";
+            player1.pos.y = player1.pos.y["+"](.2);
+            "88";
+        }
+        if (abs(ball.pos.x["-"](player1.pos.x))["<"](.4) && abs(ball.pos.y["-"](player1.pos.y))["<"](.49)) {
+            "89";
+            ball.color = color.cyan;
+            "90";
+            ball.p.x = ball.p.x["-u"]();
         }
     };
 
-    "85";
+    "94";
+    async function player2_rules() {
+        var RS_ls, direction;
+        "95";
+        if (abs(ball.pos.x["-"](player2.pos.x))["<"](.4) && abs(ball.pos.y["-"](player2.pos.y))["<"](1.3) && abs(ball.pos.y["-"](player2.pos.y))[">"](.5)) {
+            "96";
+            if ((b2 === 1 || typeof b2 === "object" && RS_equals(b2, 1))) {
+                "97";
+                ball.color = color.red;
+                "98";
+                direction = random();
+                "99";
+                ball.p.y = abs(ball.p.y);
+                "100";
+                ball.p.x = ball.p.x["-u"]();
+                "101";
+            }
+            if ((b2 === 0 || typeof b2 === "object" && RS_equals(b2, 0))) {
+                "102";
+                ball.color = color.blue;
+                "103";
+                ball.p.y = abs(ball.p.y)["-u"]();
+                "104";
+                ball.p.x = ball.p.x["-u"]();
+                "107";
+            }
+        }
+        if (abs(player2.pos.y["-"](wallT.pos.y))["<"](1)) {
+            "108";
+            player2.pos.y = player2.pos.y["-"](.2);
+            "109";
+        }
+        if (abs(player2.pos.y["-"](wallB.pos.y))["<"](1)) {
+            "110";
+            player2.pos.y = player2.pos.y["+"](.2);
+            "113";
+        }
+        if (abs(ball.pos.x["-"](player2.pos.x))["<"](.4) && abs(ball.pos.y["-"](player2.pos.y))["<"](.49)) {
+            "114";
+            ball.color = color.cyan;
+            "115";
+            ball.p.x = ball.p.x["-u"]();
+        }
+    };
+
+    "123";
     async function move() {
-        "86";
+        "124";
         ball.pos = ball.pos["+"](ball.p["/"](ball.mass)["*"](dtb));
-        "87";
+        "125";
         if (!(side[">"](RS_cond_temp = ball.pos.y) && RS_cond_temp[">"](side["-u"]()))) {
-            "88";
+            "126";
             ball.p.y = ball.p.y["-u"]();
         }
     };
 
-    "93";
+    "127";
     async function control_player1() {
         var RS_ls, k;
-        "94";
+        "128";
+        "129";
         k = keysdown();
-        "95";
+        "130";
         if (RS_in("w", k)) {
-            "96";
+            "131";
             player1.pos.y=player1.pos.y["+"](plspeed);
-            "97";
+            "132";
+            b1 = 1;
+            "133";
+            player1.color = color.red;
+            "134";
+            print(b1);
+            "135";
         }
         if (RS_in("s", k)) {
-            "98";
+            "136";
             player1.pos.y=player1.pos.y["-"](plspeed);
+            "137";
+            b1 = 0;
+            "138";
+            player1.color = color.blue;
+            "139";
+            print(b1);
         }
     };
 
-    "99";
+    "140";
     async function control_player2() {
         var RS_ls, k;
-        "100";
+        "141";
+        "142";
         k = keysdown();
-        "101";
+        "143";
         if (RS_in("up", k)) {
-            "102";
+            "144";
             player2.pos.y=player2.pos.y["+"](plspeed);
-            "103";
+            "145";
+            b2 = 1;
+            "146";
+            player2.color = color.red;
+            "147";
+            print(b2);
+            "148";
         }
         if (RS_in("down", k)) {
-            "104";
+            "149";
             player2.pos.y=player2.pos.y["-"](plspeed);
+            "150";
+            b2 = 0;
+            "151";
+            player2.color = color.blue;
+            "152";
+            print(b2);
         }
     };
 
