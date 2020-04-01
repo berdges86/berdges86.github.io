@@ -205,53 +205,46 @@ async function __main__() {
         where = v1["+"](v2)["+"](v3)["+"](v4)["+"](snake[0].pos);
         "75";
         snakesegmentposition.append(where);
-        "77";
-        if (len(snakesegmentposition)[">"](6e4)) {
-            "78";
-            snakesegmentposition = undefined;
-            "79";
-            snakesegmentposition = RS_list_decorate([]);
-            "80";
-            snakesegmentposition.append(snake[0]);
-            "82";
-        }
+        "78";
         if (RS_equals(time["%"](5), 0)) {
-            "83";
+            "79";
             createAstID = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({make_trail: false, trail_color: vector(random(), random(), random()), visible: true, pos: vector(random()["*"](50)["*"](rndSign1), random()["*"](50)["*"](rndSign2), 0), color: vector(random(), random(), random())})]);
-            "84";
+            "80";
             balls.append(createAstID);
         }
-        "87";
+        "83";
         var RS_Iter2 = range(len(balls));
         RS_Iter2 = ((typeof RS_Iter2[Symbol.iterator] === "function") ? (RS_Iter2 instanceof Map ? RS_Iter2.keys() : RS_Iter2) : Object.keys(RS_Iter2));
         for (var RS_Index2 of RS_Iter2) {
             i = RS_Index2;
-            "88";
+            "84";
             if (abs(snake[0].pos.x["-"](balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].pos.x))["<"](1) && abs(snake[0].pos.y["-"](balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].pos.y))["<"](1) && (balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible === true || typeof balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible === "object" && RS_equals(balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible, true))) {
-                "89";
+                "85";
                 snake[0].color = balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].color;
-                "90";
+                "86";
                 balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible = false;
-                "91";
+                "87";
                 snakepart = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({pos: snake[0].pos, radius: 1})]);
-                "92";
+                "88";
                 snake.append(snakepart);
             }
         }
-        "93";
+        "89";
         b = 1;
-        "94";
+        "90";
         if (len(snake)[">="](2)) {
-            "95";
+            "91";
             var RS_Iter3 = range(1, len(snake));
             RS_Iter3 = ((typeof RS_Iter3[Symbol.iterator] === "function") ? (RS_Iter3 instanceof Map ? RS_Iter3.keys() : RS_Iter3) : Object.keys(RS_Iter3));
             for (var RS_Index3 of RS_Iter3) {
                 i = RS_Index3;
-                "96";
-                snake[(typeof i === "number" && i["<"](0)) ? snake.length["+"](i) : i].pos = snakesegmentposition[RS_bound_index(len(snakesegmentposition)["-"](1)["-"](len(snake))["+"](i), snakesegmentposition)];
+                "92";
+                snake[(typeof i === "number" && i["<"](0)) ? snake.length["+"](i) : i].pos = snakesegmentposition[RS_bound_index(len(snakesegmentposition)["-"](len(snake))["+"](i), snakesegmentposition)];
+                "93";
+                snake[(typeof i === "number" && i["<"](0)) ? snake.length["+"](i) : i].color = balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].color;
             }
         }
-        "98";
+        "94";
         time = time["+"](1);
     }
 };
