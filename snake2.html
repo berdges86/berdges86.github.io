@@ -44,7 +44,7 @@ RS_modules.pythonize = {};
     RS_modules.pythonize.strings = strings;
 })();
 async function __main__() {
-    var version, box, sphere, simple_sphere, cylinder, pyramid, cone, helix, ellipsoid, ring, arrow, compound, display, vector, print, arange, type, scene, RS_ls, ball, check, i, snake, balls, snakesegmentposition, v1, v2, v3, v4, v, dv, score, time, rndSign1, rndSign2, k, where, createAstID, snakepart, b;
+    var version, box, sphere, simple_sphere, cylinder, pyramid, cone, helix, ellipsoid, ring, arrow, compound, display, vector, print, arange, type, scene, RS_ls, head, check, i, snake, balls, snakesegmentposition, v1, v2, v3, v4, v, dv, time, rndSign1, rndSign2, k, where, createAstID, snakepart;
     version = RS_list_decorate([ "2.9", "glowscript" ]);
     Array.prototype['+']=function(r) {return this.concat(r)}
     Array.prototype['*']=function(r) {return __array_times_number(this, r)}
@@ -84,7 +84,7 @@ async function __main__() {
     "9";
     scene.forward = vector(0, 0, 1["-u"]());
     "10";
-    ball = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({pos: vector(0, 0, 0), radius: 1})]);
+    head = RS_interpolate_kwargs.call(this, ellipsoid, [RS_desugar_kwargs({pos: vector(0, 0, 0), axis: vector(0, 0, 0), length: 4, height: 2, width: 2})]);
     "12";
     for (var RS_Index1 = 0; RS_Index1["<"](40); RS_Index1=RS_Index1["+"](1)) {
         i = RS_Index1;
@@ -100,7 +100,7 @@ async function __main__() {
     "18";
     snake = RS_list_decorate([]);
     "19";
-    snake.append(ball);
+    snake.append(head);
     "20";
     balls = RS_list_decorate([]);
     "21";
@@ -118,133 +118,139 @@ async function __main__() {
     "28";
     dv = .5;
     "29";
-    score = 0;
-    "30";
     time = 0;
-    "31";
+    "30";
     while (true) {
-        "33";
+        "32";
         ;(await rate(30));
-        "34";
+        "33";
         rndSign1 = random();
-        "35";
+        "34";
         if (rndSign1[">="](.5)) {
-            "36";
+            "35";
             rndSign1 = 1;
-            "37";
+            "36";
         } else {
-            "38";
+            "37";
             rndSign1 = 1["-u"]();
         }
-        "39";
+        "38";
         rndSign2 = random();
-        "40";
+        "39";
         if (rndSign2[">="](.5)) {
-            "41";
+            "40";
             rndSign2 = 1;
-            "42";
+            "41";
         } else {
-            "43";
+            "42";
             rndSign2 = 1["-u"]();
         }
-        "44";
+        "43";
         k = keysdown();
-        "46";
-        if (RS_in("left", k) && RS_equals(v3, vec(0, 0, 0))) {
+        "44";
+        if (RS_in("right", k) || RS_in("left", k)) {
+            "45";
+            head.axis = vec(4, 0, 0);
+            "46";
+        }
+        if (RS_in("up", k) || RS_in("down", k)) {
             "47";
-            v3.x=v3.x["+"](dv);
-            "48";
-            v1=v1["*"](0);
+            head.axis = vec(0, 4, 0);
             "49";
-            v2=v2["*"](0);
+        }
+        if (RS_in("left", k) && RS_equals(v3, vec(0, 0, 0))) {
             "50";
-            v4=v4["*"](0);
+            v3.x=v3.x["+"](dv);
+            "51";
+            v1=v1["*"](0);
             "52";
+            v2=v2["*"](0);
+            "53";
+            v4=v4["*"](0);
+            "54";
         }
         if (RS_in("right", k) && RS_equals(v2, vec(0, 0, 0))) {
-            "53";
-            v2.x=v2.x["+"](dv);
-            "54";
-            v1=v1["*"](0);
             "55";
-            v3=v3["*"](0);
+            v2.x=v2.x["+"](dv);
             "56";
-            v4=v4["*"](0);
+            v1=v1["*"](0);
+            "57";
+            v3=v3["*"](0);
             "58";
+            v4=v4["*"](0);
+            "59";
         }
         if (RS_in("up", k) && RS_equals(v1, vec(0, 0, 0))) {
-            "59";
-            v1.y=v1.y["+"](dv);
-            "60";
-            v2=v2["*"](0);
             "61";
-            v3=v3["*"](0);
+            v1.y=v1.y["+"](dv);
             "62";
-            v4=v4["*"](0);
+            v2=v2["*"](0);
+            "63";
+            v3=v3["*"](0);
             "64";
+            v4=v4["*"](0);
+            "66";
         }
         if (RS_in("down", k) && RS_equals(v4, vec(0, 0, 0))) {
-            "65";
-            v4.y=v4.y["+"](dv);
-            "66";
-            v1=v1["*"](0);
             "67";
-            v3=v3["*"](0);
+            v4.y=v4.y["+"](dv);
             "68";
+            v1=v1["*"](0);
+            "69";
+            v3=v3["*"](0);
+            "70";
             v2=v2["*"](0);
         }
-        "70";
-        snake[0].pos=snake[0].pos["+"](v1);
-        "71";
-        snake[0].pos=snake[0].pos["-"](v3);
         "72";
-        snake[0].pos=snake[0].pos["+"](v2);
+        snake[0].pos=snake[0].pos["+"](v1);
         "73";
-        snake[0].pos=snake[0].pos["-"](v4);
+        snake[0].pos=snake[0].pos["-"](v3);
         "74";
-        where = v1["+"](v2)["+"](v3)["+"](v4)["+"](snake[0].pos);
+        snake[0].pos=snake[0].pos["+"](v2);
         "75";
+        snake[0].pos=snake[0].pos["-"](v4);
+        "76";
+        where = v1["+"](v2)["+"](v3)["+"](v4)["+"](snake[0].pos);
+        "77";
         snakesegmentposition.append(where);
-        "78";
+        "80";
         if (RS_equals(time["%"](5), 0)) {
-            "79";
-            createAstID = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({make_trail: false, trail_color: vector(random(), random(), random()), visible: true, pos: vector(random()["*"](50)["*"](rndSign1), random()["*"](50)["*"](rndSign2), 0), color: vector(random(), random(), random())})]);
-            "80";
+            "81";
+            createAstID = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({visible: true, pos: vector(random()["*"](50)["*"](rndSign1), random()["*"](50)["*"](rndSign2), 0), color: vector(random(), random(), random())})]);
+            "82";
             balls.append(createAstID);
         }
-        "83";
+        "85";
         var RS_Iter2 = range(len(balls));
         RS_Iter2 = ((typeof RS_Iter2[Symbol.iterator] === "function") ? (RS_Iter2 instanceof Map ? RS_Iter2.keys() : RS_Iter2) : Object.keys(RS_Iter2));
         for (var RS_Index2 of RS_Iter2) {
             i = RS_Index2;
-            "84";
+            "86";
             if (abs(snake[0].pos.x["-"](balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].pos.x))["<"](1) && abs(snake[0].pos.y["-"](balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].pos.y))["<"](1) && (balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible === true || typeof balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible === "object" && RS_equals(balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible, true))) {
-                "85";
-                snake[0].color = balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].color;
-                "86";
-                balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible = false;
                 "87";
-                snakepart = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({pos: snake[0].pos, radius: 1})]);
+                snake[0].color = balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].color;
                 "88";
+                balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].visible = false;
+                "89";
+                snakepart = RS_interpolate_kwargs.call(this, sphere, [RS_desugar_kwargs({pos: snake[0].pos, radius: 1})]);
+                "90";
                 snake.append(snakepart);
+                "91";
             }
         }
-        "89";
-        b = 1;
-        "90";
         if (len(snake)[">="](2)) {
-            "91";
+            "92";
             var RS_Iter3 = range(1, len(snake));
             RS_Iter3 = ((typeof RS_Iter3[Symbol.iterator] === "function") ? (RS_Iter3 instanceof Map ? RS_Iter3.keys() : RS_Iter3) : Object.keys(RS_Iter3));
             for (var RS_Index3 of RS_Iter3) {
                 i = RS_Index3;
-                "92";
-                snake[(typeof i === "number" && i["<"](0)) ? snake.length["+"](i) : i].pos = snakesegmentposition[RS_bound_index(len(snakesegmentposition)["-"](len(snake))["+"](i), snakesegmentposition)];
                 "93";
+                snake[(typeof i === "number" && i["<"](0)) ? snake.length["+"](i) : i].pos = snakesegmentposition[RS_bound_index(len(snakesegmentposition)["-"](len(snake))["+"](i)["-"](2), snakesegmentposition)];
+                "94";
                 snake[(typeof i === "number" && i["<"](0)) ? snake.length["+"](i) : i].color = balls[(typeof i === "number" && i["<"](0)) ? balls.length["+"](i) : i].color;
             }
         }
-        "94";
+        "95";
         time = time["+"](1);
     }
 };
