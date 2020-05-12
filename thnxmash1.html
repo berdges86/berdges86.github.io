@@ -1,0 +1,276 @@
+<div id="glowscript" class="glowscript">
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+<link type="text/css" href="https://s3.amazonaws.com/glowscript/css/redmond/2.1/jquery-ui.custom.css" rel="stylesheet" />
+<link type="text/css" href="https://s3.amazonaws.com/glowscript/css/ide.css" rel="stylesheet" />
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/lib/jquery/2.1/jquery.min.js"></script>
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/lib/jquery/2.1/jquery-ui.custom.min.js"></script>
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/package/glow.2.9.min.js"></script>
+<script type="text/javascript" src="https://s3.amazonaws.com/glowscript/package/RSrun.2.9.min.js"></script>
+<script type="text/javascript"><!--//--><![CDATA[//><!--
+
+// START JAVASCRIPT
+;(function() {;
+var RS_modules = {};
+RS_modules.pythonize = {};
+
+(function(){
+    function strings() {
+        var string_funcs, exclude, name;
+        string_funcs = set("capitalize strip lstrip rstrip islower isupper isspace lower upper swapcase center count endswith startswith find rfind index rindex format join ljust rjust partition rpartition replace split rsplit splitlines zfill".split(" "));
+        if (!arguments.length) {
+            exclude = (function(){
+                var s = RS_set();
+                s.jsset.add("split");
+                s.jsset.add("replace");
+                return s;
+            })();
+        } else if (arguments[0]) {
+            exclude = Array.prototype.slice.call(arguments);
+        } else {
+            exclude = null;
+        }
+        if (exclude) {
+            string_funcs = string_funcs.difference(set(exclude));
+        }
+        var RS_Iter0 = string_funcs;
+        RS_Iter0 = ((typeof RS_Iter0[Symbol.iterator] === "function") ? (RS_Iter0 instanceof Map ? RS_Iter0.keys() : RS_Iter0) : Object.keys(RS_Iter0));
+        for (var RS_Index0 of RS_Iter0) {
+            name = RS_Index0;
+            (RS_expr_temp = String.prototype)[(typeof name === "number" && name < 0) ? RS_expr_temp.length + name : name] = (RS_expr_temp = RS_str.prototype)[(typeof name === "number" && name < 0) ? RS_expr_temp.length + name : name];
+        }
+    };
+    if (!strings.__module__) Object.defineProperties(strings, {
+        __module__ : {value: "pythonize"}
+    });
+
+    RS_modules.pythonize.strings = strings;
+})();
+async function __main__() {
+    var version, box, sphere, simple_sphere, cylinder, pyramid, cone, helix, ellipsoid, ring, arrow, compound, display, vector, print, arange, __name__, type, scene, RS_ls, c, bb, z, x, y, j, i, time;
+    version = RS_list_decorate([ "2.9", "glowscript" ]);
+    Array.prototype['+']=function(r) {return this.concat(r)}
+    Array.prototype['*']=function(r) {return __array_times_number(this, r)}
+    window.__GSlang = "vpython";
+    box = vp_box;
+    sphere = vp_sphere;
+    simple_sphere = vp_simple_sphere;
+    cylinder = vp_cylinder;
+    pyramid = vp_pyramid;
+    cone = vp_cone;
+    helix = vp_helix;
+    ellipsoid = vp_ellipsoid;
+    ring = vp_ring;
+    arrow = vp_arrow;
+    compound = vp_compound;
+    display = canvas;
+    vector = vec;
+    print = GSprint;
+    arange = range;
+    __name__ = "__main__";
+    type = pytype;
+    scene = canvas();
+    var strings = RS_modules.pythonize.strings;
+
+    strings();
+    "2";
+    scene.width = 640;
+    "3";
+    scene.height = 480;
+    "4";
+    scene.userzoom = true;
+    "5";
+    scene.userspin = true;
+    "6";
+    scene.autoscale = true;
+    "7";
+    scene.camera.pos = vector(10, 5, 10);
+    "8";
+    scene.forward = vector(0, 0, 1["-u"]());
+    "9";
+    scene.camera.range = 1;
+    "11";
+    c = 0;
+    "12";
+    bb = RS_list_decorate([]);
+    "13";
+    z = 0;
+    "14";
+    x = 0;
+    "15";
+    y = 0;
+    "17";
+    for (var RS_Index1 = 1; RS_Index1["<"](9); RS_Index1++) {
+        i = RS_Index1;
+        "18";
+        for (var RS_Index2 = 1; RS_Index2["<"](9); RS_Index2++) {
+            j = RS_Index2;
+            "19";
+            bb.push(RS_interpolate_kwargs.call(this, box, [RS_desugar_kwargs({pos: vector(i["*"](2), j["*"](2), 0)})]));
+            "20";
+            c=c["+"](1);
+        }
+    }
+    "22";
+    scene.autoscale = false;
+    "24";
+    for (var RS_Index3 = 0; RS_Index3["<"](25); RS_Index3=RS_Index3["+"](1)) {
+        i = RS_Index3;
+        "25";
+        scene.camera.pos = vector(10, 5, i);
+        "26";
+        ;(await sleep(1e-4));
+    }
+    "27";
+    time = 0;
+    "28";
+    while (true) {
+        "29";
+        ;(await rate(30));
+        "30";
+        for (var RS_Index4 = 0; RS_Index4["<"](8); RS_Index4++) {
+            i = RS_Index4;
+            "31";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(floor(y["%"](2)), floor(x["%"](2)), floor(z["%"](2)))})]);
+            "32";
+            z=z["+"](1);
+            "33";
+            x=x["+"](.5);
+            "34";
+            y=y["+"](.25);
+            "38";
+            if (RS_equals(time["%"](10), 0)) {
+                "39";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+            "40";
+            bb[0].color = color.red;
+            "41";
+            bb[7].color = color.red;
+        }
+        "44";
+        for (var RS_Index5 = 8; RS_Index5["<"](16); RS_Index5++) {
+            i = RS_Index5;
+            "45";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(floor(y["%"](2)), floor(x["%"](2)), z["%"](2)["*"](1["-u"]()))})]);
+            "46";
+            z=z["+"](1);
+            "47";
+            x=x["+"](.5);
+            "48";
+            y=y["+"](.25);
+            "49";
+            if (RS_equals(time["%"](10), 0)) {
+                "50";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+        }
+        "51";
+        for (var RS_Index6 = 16; RS_Index6["<"](24); RS_Index6++) {
+            i = RS_Index6;
+            "52";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(floor(y["%"](2)), ceil(x["%"](2)["*"](1["-u"]())), z["%"](2))})]);
+            "53";
+            z=z["+"](1);
+            "54";
+            x=x["+"](.5);
+            "55";
+            y=y["+"](.25);
+            "56";
+            if (RS_equals(time["%"](10), 0)) {
+                "57";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+        }
+        "58";
+        time=time["+"](1);
+        "59";
+        for (var RS_Index7 = 24; RS_Index7["<"](32); RS_Index7++) {
+            i = RS_Index7;
+            "60";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(ceil(y["%"](2)["*"](1["-u"]())), floor(x["%"](2)), z["%"](2))})]);
+            "61";
+            z=z["+"](1);
+            "62";
+            x=x["+"](.5);
+            "63";
+            y=y["+"](.25);
+            "64";
+            if (RS_equals(time["%"](10), 0)) {
+                "65";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+        }
+        "66";
+        for (var RS_Index8 = 32; RS_Index8["<"](40); RS_Index8++) {
+            i = RS_Index8;
+            "67";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(ceil(y["%"](2)["*"](1["-u"]())), ceil(x["%"](2)["*"](1["-u"]())), z["%"](2))})]);
+            "68";
+            z=z["+"](1);
+            "69";
+            x=x["+"](.5);
+            "70";
+            y=y["+"](.25);
+            "71";
+            if (RS_equals(time["%"](10), 0)) {
+                "72";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+        }
+        "73";
+        for (var RS_Index9 = 40; RS_Index9["<"](48); RS_Index9++) {
+            i = RS_Index9;
+            "74";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(ceil(y["%"](2)["*"](1["-u"]())), floor(x["%"](2)), z["%"](2)["*"](1["-u"]()))})]);
+            "75";
+            z=z["+"](1);
+            "76";
+            x=x["+"](.5);
+            "77";
+            y=y["+"](.25);
+            "78";
+            if (RS_equals(time["%"](10), 0)) {
+                "79";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+        }
+        "80";
+        for (var RS_Index10 = 48; RS_Index10["<"](56); RS_Index10++) {
+            i = RS_Index10;
+            "81";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(floor(y["%"](2)), ceil(x["%"](2)["*"](1["-u"]())), z["%"](2)["*"](1["-u"]()))})]);
+            "82";
+            z=z["+"](1);
+            "83";
+            x=x["+"](.5);
+            "84";
+            y=y["+"](.25);
+            "85";
+            if (RS_equals(time["%"](10), 0)) {
+                "86";
+                bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].color = vector(random(), random(), random());
+            }
+        }
+        "87";
+        for (var RS_Index11 = 56; RS_Index11["<"](64); RS_Index11++) {
+            i = RS_Index11;
+            "88";
+            await RS_interpolate_kwargs.call(bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i], bb[(typeof i === "number" && i["<"](0)) ? bb.length["+"](i) : i].rotate, [RS_desugar_kwargs({angle: .1, axis: vector(ceil(y["%"](2)["*"](1["-u"]())), ceil(x["%"](2)["*"](1["-u"]())), z["%"](2)["*"](1["-u"]()))})]);
+            "89";
+            z=z["+"](1);
+            "90";
+            x=x["+"](.5);
+            "91";
+            y=y["+"](.25);
+        }
+    }
+};
+if (!__main__.__module__) Object.defineProperties(__main__, {
+    __module__ : {value: null}
+});
+
+;$(function(){ window.__context = { glowscript_container: $("#glowscript").removeAttr("id") }; __main__() })})()
+// END JAVASCRIPT
+
+//--><!]]></script>
+</div>
