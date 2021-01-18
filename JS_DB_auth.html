@@ -1,0 +1,61 @@
+<form>
+ <input type="email" id="email" placeholder="Емыло"><br>
+ <input type="password" id="password" placeholder="Пароль"><br>
+ <button>
+ Log in
+ </button>
+</form>
+<button id="logout">
+ Log out
+</button>
+<script src="https://cdn.jsdelivr.net/npm/jquery@3.3.1/dist/jquery.min.js"></script>
+<!-- V ЗАМЕНИТЕ НА СВОЁ V -->
+<script src="https://www.gstatic.com/firebasejs/5.9.0/firebase.js"></script>
+<script>
+ var config = {
+  apiKey: "AIzaSyA-JwuzQu4m35kEy8EItsxVZ6adTpFYXOg",
+  authDomain: "poop-pooper.firebaseapp.com",
+  databaseURL: "https://poop-pooper-default-rtdb.europe-west1.firebasedatabase.app",
+  projectId: "poop-pooper",
+  storageBucket: "poop-pooper.appspot.com",
+  messagingSenderId: "41264560992",
+  appId: "1:41264560992:web:7485b4076087e7147a3c05",
+  measurementId: "G-0RXEYPZBJR"
+ };
+ firebase.initializeApp(config);
+</script>
+<script>
+  firebase.auth().onAuthStateChanged(user => {
+ if (user) {
+ // Кто-то вошёл. Этот код выполняестся когда кто-то вошёл или при загрузке страницы если кто-то уже вошёл
+ alert('Привет, ' + user.email)
+ } else {
+ // Никто не вошёл. Этот код выполняестся когда кто-то разлогинился или при загрузке страницы
+ alert('Ты не залогинен')
+ }
+})
+$('form').submit(e => { // Когда кто-то нажал Log in или нажал Enter
+ e.preventDefault() // Просто напишите это. Мне лень объяснять, но это очень важная строка кода
+ const email = $('#email').val() // Получить емейл из поля ввода
+ const password = $('#password').val() // Получить пароль из поля ввода
+ firebase.auth().signInWithEmailAndPassword(email, password).catch(error => { // Попробовать залогиниться
+ // Произошла ошибка. Покажите её пользователю
+ const errorCode = error.code
+ const errorMessage = error.message
+ alert(errorMessage)
+ })
+})
+$('#logout').click(() => { // Когда кто-то нажал на Log out
+ firebase.auth().signOut().then(function() {
+ // Успешно разлогинились
+ alert('Разлогинились')
+ }).catch(function(error) {
+ // Произошла ошибка. Покажите её пользователю
+ const errorCode = error.code
+ const errorMessage = error.message
+ alert(errorMessage)
+ })
+})
+</script>
+
+
