@@ -1,0 +1,2 @@
+if (!window._data) window._data = {};
+    window._data['app-config'] = {"refunds.cancelSubscriptionForm":{"contactOptionList":["telegram","email"]},"newYear.2023":{"ogTemplateImage":"https://code.s3.yandex.net/ny2023/ny_2023_og_image_template_final.svg"},"id":"bunker:/wirth/app-config#"};
