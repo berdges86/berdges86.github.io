@@ -16,7 +16,9 @@
     <link rel="stylesheet" href="../lib/profile-goal-widget.build.css" />
 
 
-    <script></script>
+    <link rel="stylesheet" href="style.css" />
+    <script src="script.js" defer></script>
+
 </head>
 
 <body id="bundle-trainer" class="prisma prisma_theme_light prisma_theme_default pointerfocus"
@@ -50,40 +52,7 @@
                                                     style="--scroll-bar-width: 18px; --scroll-bar-height: 18px;">
                                                     <div class="scrollable__content">
                                                         <div class="trainer__theory-page-content">
-                                                            <div
-                                                                class="header header_view_theory trainer__header trainer__header_hidden">
-                                                                <header class="prisma-header header__content">
-                                                                    <div
-                                                                        class="prisma-header__container header__container">
-                                                                        <section class="prisma-header__block">
-                                                                        </section>
-                                                                        <section class="prisma-header__block">
-                                                                            <div class="header__referral"><button
-                                                                                    class="prisma-button prisma-button_icon-placement_left prisma-button_position-in-group_none prisma-button_size_xs prisma-button_view_clear prisma-button_with-icon"
-                                                                                    data-test-id="header-referral-button"><span
-                                                                                        class="prisma-button__content"><span
-                                                                                            class="prisma-button__icon"
-                                                                                            aria-hidden="true">
-                                                                                            <picture
-                                                                                                style="width: 36px; height: 36px;">
-                                                                                                <source
-                                                                                                    srcset="https://code.s3.yandex.net/dev/referral.2x.png 1x, https://code.s3.yandex.net/dev/referral.3x.png 2x">
-                                                                                                <img width="36"
-                                                                                                    height="36"
-                                                                                                    src="https://code.s3.yandex.net/dev/referral.2x.png"
-                                                                                                    srcset="https://code.s3.yandex.net/dev/referral.3x.png 2x"
-                                                                                                    alt="Открыть виджет юзера">
-                                                                                            </picture>
-                                                                                        </span><span
-                                                                                            class="prisma-button__text"><span
-                                                                                                class="prisma-button__label"><span>Пригласить
-                                                                                                    друзей</span></span></span></span></button>
-                                                                            </div>
-                                                                        </section>
-                                                                    </div>
-                                                                </header>
-                                                                <div class="header__footer"></div>
-                                                            </div>
+
                                                             <div></div>
                                                             <div class="lesson-progress lesson-progress_view_full lesson-progress_full-width lesson-progress_in-trainer"
                                                                 data-test-id="lesson-progress">
@@ -342,7 +311,7 @@
                                                                                         class="image-gallery__main-image-wrapper">
 
                                                                                         <div class="image-gallery__main-image fade-enter-done"
-                                                                                            style="background-image: url(&quot;./New_1.1.4_2880_1629980821.png&quot;);">
+                                                                                            style="background-image: url(&quot;New_1.1.4_2880_1629980821.png&quot;);">
                                                                                         </div>
 
 
@@ -355,10 +324,10 @@
                                                                                         class="image-gallery__main-image-wrapper">
 
                                                                                         <div class="image-gallery__main-image fade-enter-done"
-                                                                                            style="background-image: url(&quot;./New_1.1.4_2880_1629980821.png&quot;);">
+                                                                                            style="background-image: url(&quot;New_1.1.4_2880_1629980821.png&quot;);">
                                                                                         </div>
                                                                                         <div class="image-gallery__main-image fade-enter-done"
-                                                                                            style="background-image: url(&quot;./New_1.1.5_2880_1629980827.png&quot;);">
+                                                                                            style="background-image: url(&quot;New_1.1.5_2880_1629980827.png&quot;);">
                                                                                         </div>
 
                                                                                     </section>
@@ -479,40 +448,9 @@
                                                                                         </div>
                                                                                     </div>
                                                                                 </section>
-                                                                                <section
-                                                                                    class="quiz quiz quiz_answered quiz_type_text quiz_blocking theory-viewer__block theory-viewer__block_type_quiz-text theory-viewer__block_wide"
-                                                                                    style="--accent-color: var(--profession-color, $pureBlue);">
-                                                                                    <div
-                                                                                        class="Markdown base-markdown base-markdown_with-gallery base-markdown markdown markdown_size_normal markdown_type_theory quiz__content">
-                                                                                        <div class="paragraph">
-                                                                                            <strong>Какая сумма
-                                                                                                получилась в итоге?
-                                                                                                Ответ запишите
-                                                                                                числом
-                                                                                                без
-                                                                                                пробелов.</strong>
-                                                                                        </div>
-                                                                                    </div>
-                                                                                    <section class="quiz__question">
-                                                                                    </section>
-                                                                                    <section class="quiz__subheader">Ваш
-                                                                                        ответ неправильный</section>
-                                                                                    <section
-                                                                                        class="quiz__content-block quiz__content-block_status_fail">
-                                                                                        123</section>
-                                                                                    <div
-                                                                                        class="Markdown base-markdown base-markdown_with-gallery base-markdown markdown markdown_size_normal markdown_type_theory quiz__feedback">
-                                                                                        <p class="paragraph"
-                                                                                            content="[object Object],[object Object],[object Object]"
-                                                                                            type="paragraph">Сумма
-                                                                                            должна быть другой — 2
-                                                                                            743
-                                                                                            375. Посмотрите видео
-                                                                                            ниже и
-                                                                                            повторите все действия.
-                                                                                        </p>
-                                                                                    </div>
-                                                                                </section>
+                                                                                <div id="quiz"></div>
+                                                                                <button id="submit">Проверить</button>
+                                                                                <div id="results"></div>
                                                                                 <section
                                                                                     class="theory-viewer__block theory-viewer__block_type_markdown">
                                                                                     <div
@@ -621,7 +559,7 @@
                                                                     <div
                                                                         class="next-lesson-control next-lesson-control_state_ready">
                                                                         <button type="button"
-                                                                            onclick="window.location.href='../1_4_8/index.html'"
+                                                                            onclick="window.location.href='.1_4_8/index.html'"
                                                                             class="prisma-button2 prisma-button2_size_l prisma-button2_view_primary prisma-button2_no-outline next-lesson-control__button"
                                                                             data-test-id="next-lesson-control-button"><span
                                                                                 class="prisma-button2__content"><span>К
@@ -856,6 +794,8 @@
     <div data-overlay-container="true"></div>
     <div data-overlay-container="true"></div><textarea tabindex="-1" aria-hidden="true"
         style="min-height: 0px !important; max-height: none !important; height: 0px !important; visibility: hidden !important; overflow: hidden !important; position: absolute !important; z-index: -1000 !important; top: 0px !important; right: 0px !important; border-width: 0px; box-sizing: border-box; font-family: &quot;YS Text&quot;, Arial, Helvetica, sans-serif; font-size: 14px; font-style: normal; font-weight: 400; letter-spacing: normal; line-height: normal; padding: 0px; tab-size: 8; text-indent: 0px; text-rendering: auto; text-transform: none; width: 207px; word-break: normal;"></textarea>
+
+
 
 
 
