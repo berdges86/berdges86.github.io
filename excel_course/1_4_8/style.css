@@ -1,0 +1,24 @@
+.question{
+    font-size: 20px;
+  font-family: sans-serif;
+  font-weight: 600;
+}
+.answers {
+    font-size: 20px;
+  font-family: sans-serif;
+    margin-bottom: 20px;
+}
+button[id^="submit"] {
+  font-family: sans-serif;
+  font-size: 20px;
+  background-color: #297;
+  color: #fff;
+  border: 0px;
+  border-radius: 3px;
+  padding: 20px;
+  cursor: pointer;
+  margin-bottom: 20px;
+}
+#submit:hover{
+  background-color: #3a8;
+}
