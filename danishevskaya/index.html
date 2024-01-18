@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>Radar Chart</title>
+        <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+        <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.2.2/dist/html2canvas.min.js"></script>
+    </head>
+
+    <body>
+        <h2>Вопросы для оценки роли PAEI</h2>
+        <p>Вес ответа от 1 до 5</p>
+        <div id="questions"></div>
+        <br />
+        <div>
+            <button onclick="createDiagramm()">Построить диаграмму</button>
+        </div>
+        <div><button onclick="sendToTelegram()">Отправить</button></div>
+        <h2>Радарная диаграмма для оценки роли PAEI</h2>
+        <canvas id="radarChart" width="400" height="400"></canvas>
+
+        <script>
+            // Вопросы для теста, разделенные по четырем ролям PAEI
+            const productionQuestions = [
+                'Насколько для вас важно доводить начатые проекты до конечных результатов?',
+                'Как часто вы чувствуете необходимость устанавливать ясные цели для себя и своей команды?',
+                'Насколько эффективно вы управляете своим временем для достижения поставленных задач?',
+                'Как вы оцениваете свою способность фокусироваться на деталях при выполнении задач?',
+                'Насколько вам важно создавать эффективные рабочие процессы для достижения целей?',
+                'Как часто вы используете структурированные методы для выполнения задач?',
+                'Насколько вам важно поддерживать последовательность и порядок в работе?',
+                'Как часто вы предпочитаете работать по заранее составленному плану?',
+            ];
+
+            const administrationQuestions = [
+                'Насколько вам важно использовать стандартизированные процессы и системы для оптимизации бизнес-процессов?',
+                'Как часто вы применяете методы организации и планирования для достижения своих целей?',
+                'Насколько вам удается эффективно распределять ресурсы в рамках проектов?',
+                'Как вы оцениваете свою способность координировать действия команды в рамках поставленных задач?',
+                'Насколько важно для вас использование стандартов и процессов для оптимизации работы вашей команды?',
+                'Как часто вы проводите оценку эффективности бизнес-процессов и их улучшение?',
+                'Насколько важно для вас оптимизировать использование ресурсов в вашей команде?',
+                'Как вы относитесь к делегированию задач и ответственности в своей команде?',
+            ];
+
+            const entrepreneurshipQuestions = [
+                'Насколько часто вы активно ищете новые возможности и идеи для развития?',
+                'Как вы относитесь к неопределенности и риску при принятии стратегических решений?',
+                'Как часто вы проводите инициативы по внедрению новых идей и изменений?',
+                'Насколько вы готовы экспериментировать с новыми подходами и методами работы?',
+                'Насколько важно для вас создавать инновационные продукты или услуги?',
+                'Как часто вы сталкиваетесь с изменениями в своей области деятельности и адаптируетесь к ним?',
+                'Насколько вы комфортны с риском и возможностью неудачи в своей работе?',
+                'Как вы оцениваете свою способность воспринимать и внедрять новые идеи в работе своей команды?',
+            ];
+
+            const integrationQuestions = [
+                'Насколько для вас важно создавать единство и согласие в команде?',
+                'Как вы поддерживаете взаимодействие и коммуникацию между членами вашей команды?',
+                'Насколько вы уделяете внимание разрешению конфликтов и поддержанию положительного рабочего климата?',
+                'Как вы стимулируете обмен идеями и коллективную креативность в своей команде?',
+                'Насколько важно для вас создание сбалансированного и инклюзивного рабочего окружения?',
+                'Как часто вы проводите мероприятия для укрепления командной духа и сотрудничества?',
+                'Насколько вы активно поддерживаете и развиваете лидерские качества у членов своей команды?',
+                'Как вы оцениваете свою способность реагировать на изменения и подстраиваться под потребности команды',
+            ];
+
+            // Перемешивание вопросов
+            const shuffleQuestions = (questions) => {
+                for (let i = questions.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [questions[i], questions[j]] = [questions[j], questions[i]];
+                }
+            };
+
+            shuffleQuestions(productionQuestions);
+            shuffleQuestions(administrationQuestions);
+            shuffleQuestions(entrepreneurshipQuestions);
+            shuffleQuestions(integrationQuestions);
+
+            // Построение радарной диаграммы
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            const myRadarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: [
+                        'Производство',
+                        'Администрирование',
+                        'Предпринимательство',
+                        'Интеграция',
+                    ],
+                    datasets: [
+                        {
+                            data: [],
+                            backgroundColor: 'rgba(135, 206, 250, 0.5)',
+                            borderColor: 'rgba(135, 206, 250, 1)',
+                            borderWidth: 1,
+                        },
+                    ],
+                },
+                options: {
+                    scale: {
+                        ticks: {
+                            beginAtZero: true,
+                            max: 5,
+                        },
+                    },
+                },
+            });
+
+            // Отображение вопросов и оценок
+            const questionsContainer = document.getElementById('questions');
+
+            function addQuestionsToForm(questions, prefix) {
+                questions.forEach((question, index) => {
+                    const inputName = `${prefix}Question${index}`;
+                    const inputElement = document.createElement('input');
+                    inputElement.setAttribute('type', 'number');
+                    inputElement.setAttribute('name', inputName);
+                    inputElement.setAttribute('min', '1');
+                    inputElement.setAttribute('max', '5');
+                    inputElement.setAttribute('required', 'true');
+                    questionsContainer
+                        .appendChild(document.createElement('label'))
+                        .appendChild(document.createTextNode(question));
+                    questionsContainer.appendChild(inputElement);
+                    questionsContainer.appendChild(
+                        document.createElement('br')
+                    );
+                });
+            }
+
+            addQuestionsToForm(productionQuestions, 'Production');
+            addQuestionsToForm(administrationQuestions, 'Administration');
+            addQuestionsToForm(entrepreneurshipQuestions, 'Entrepreneurship');
+            addQuestionsToForm(integrationQuestions, 'Integration');
+
+            function createDiagramm() {
+                // Получение значений ответов
+                const productionValue = parseInt(
+                    document.querySelector('input[name="ProductionQuestion0"]')
+                        .value
+                );
+                const administrationValue = parseInt(
+                    document.querySelector(
+                        'input[name="AdministrationQuestion0"]'
+                    ).value
+                );
+                const entrepreneurshipValue = parseInt(
+                    document.querySelector(
+                        'input[name="EntrepreneurshipQuestion0"]'
+                    ).value
+                );
+                const integrationValue = parseInt(
+                    document.querySelector('input[name="IntegrationQuestion0"]')
+                        .value
+                );
+
+                // Обновление данных для диаграммы
+                myRadarChart.data.datasets[0].data = [
+                    productionValue,
+                    administrationValue,
+                    entrepreneurshipValue,
+                    integrationValue,
+                ];
+                myRadarChart.update();
+            }
+
+            function sendToTelegram() {
+                createDiagramm;
+                const radarChartCanvas = document.getElementById('radarChart');
+
+                html2canvas(radarChartCanvas).then(function (canvas) {
+                    // Перевести содержимое canvas в data URL
+                    const chartImageURL = canvas.toDataURL('image/png');
+
+                    // Замените '982695632' на реальный идентификатор пользователя Telegram
+                    const telegramUserId = '982695632';
+                    const telegramLink = `https://t.me/${telegramUserId}?photo=${chartImageURL}`;
+
+                    // Открыть ссылку в новом окне
+                    window.open(telegramLink, '_blank');
+                });
+            }
+        </script>
+    </body>
+</html>
