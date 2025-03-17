@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Integrated HR Model: PPRQC, PAEI, 9box</title>
+    <script src="https://unpkg.com/vis-network/standalone/umd/vis-network.min.js"></script>
+    <style>
+        #container {
+            width: 100%;
+            height: 100vh;
+            border: 1px solid #ccc;
+        }
+    </style>
+</head>
+<body>
+    <div id="container"></div>
+
+    <script>
+        // Создаем узлы и связи
+        const nodes = new vis.DataSet([
+            // Этап 1: Номинация и оценка PPRQC
+            { id: 1, label: "1. Номинация\n(PPRQC: Potential)", group: "pprqc" },
+            { id: 2, label: "2. Оценка Performance\n(PPRQC: Performance)", group: "pprqc" },
+            { id: 3, label: "3. Оценка Readiness\n(PPRQC: Readiness)", group: "pprqc" },
+            { id: 4, label: "4. Оценка Quality\n(PPRQC: Quality)", group: "pprqc" },
+            { id: 5, label: "5. Оценка Culture\n(PPRQC: Culture)", group: "pprqc" },
+
+            // Матрица 9box
+            { id: 6, label: "6. Матрица 9box\n(Потенциал vs Результативность)", group: "9box", shape: "box" },
+
+            // Квадранты 9box
+            { id: 7, label: "Квадрант 1:\nВысокий потенциал\nНизкая результативность", group: "quadrant" },
+            { id: 8, label: "Квадрант 2:\nВысокий потенциал\nВысокая результативность", group: "quadrant" },
+            { id: 9, label: "Квадрант 3:\nНизкий потенциал\nВысокая результативность", group: "quadrant" },
+            { id: 10, label: "Квадрант 4:\nНизкий потенциал\nНизкая результативность", group: "quadrant" },
+
+            // PAEI-роли
+            { id: 11, label: "PAEI: Producer\n(Результаты)", group: "paei" },
+            { id: 12, label: "PAEI: Administrator\n(Процессы)", group: "paei" },
+            { id: 13, label: "PAEI: Entrepreneur\n(Инновации)", group: "paei" },
+            { id: 14, label: "PAEI: Integrator\n(Команда)", group: "paei" },
+
+            // Действия
+            { id: 15, label: "Тестирование на фит\n(Оценка компетенций)", group: "action" },
+            { id: 16, label: "Коучинг", group: "action" },
+            { id: 17, label: "Ротация", group: "action" },
+            { id: 18, label: "Увольнение", group: "action" },
+        ]);
+
+        const edges = new vis.DataSet([
+            // PPRQC → 9box
+            { from: 1, to: 6 }, // Potential
+            { from: 2, to: 6 }, // Performance
+            { from: 3, to: 6 }, // Readiness
+            { from: 4, to: 6 }, // Quality
+            { from: 5, to: 6 }, // Culture
+
+            // 9box → Квадранты
+            { from: 6, to: 7 }, // Квадрант 1
+            { from: 6, to: 8 }, // Квадрант 2
+            { from: 6, to: 9 }, // Квадрант 3
+            { from: 6, to: 10 }, // Квадрант 4
+
+            // Квадранты → PAEI
+            { from: 7, to: 11 }, // Producer
+            { from: 7, to: 12 }, // Administrator
+            { from: 7, to: 13 }, // Entrepreneur
+            { from: 7, to: 14 }, // Integrator
+
+            { from: 8, to: 11 }, 
+            { from: 8, to: 12 }, 
+            { from: 8, to: 13 }, 
+            { from: 8, to: 14 }, 
+
+            { from: 9, to: 11 }, 
+            { from: 9, to: 12 }, 
+            { from: 9, to: 13 }, 
+            { from: 9, to: 14 }, 
+
+            { from: 10, to: 11 }, 
+            { from: 10, to: 12 }, 
+            { from: 10, to: 13 }, 
+            { from: 10, to: 14 }, 
+
+            // PAEI → Действия
+            { from: 11, to: 15 }, // Producer → Тестирование
+            { from: 12, to: 16 }, // Administrator → Коучинг
+            { from: 13, to: 17 }, // Entrepreneur → Ротация
+            { from: 14, to: 18 }, // Integrator → Увольнение
+        ]);
+
+        // Группы стилей
+        const groups = {
+            pprqc: { color: "#FFD700", shape: "ellipse" }, // Золотой
+            "9box": { color: "#98FB98", shape: "diamond" }, // Зеленый
+            quadrant: { color: "#87CEEB", shape: "box" }, // Голубой
+            paei: { color: "#DDA0DD", shape: "circle" }, // Фиолетовый
+            action: { color: "#FFA07A", shape: "triangle" }, // Оранжевый
+        };
+
+        // Конфигурация сети
+        const container = document.getElementById("container");
+        const data = { nodes, edges };
+        const options = {
+            nodes: { 
+                font: { size: 14, color: "#000000" },
+                margin: 10,
+                borderWidth: 2,
+            },
+            edges: {
+                arrows: "to",
+                smooth: { type: "cubicBezier" },
+                color: "#666666",
+            },
+            layout: {
+                hierarchical: {
+                    direction: "UD",
+                    nodeSpacing: 150,
+                    levelSeparation: 200,
+                },
+            },
+            physics: {
+                stabilization: true,
+            },
+        };
+
+        const network = new vis.Network(container, data, options);
+    </script>
+</body>
+</html>
