@@ -1,0 +1,1316 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Логгер для роботов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            transition: background-color 0.3s, color 0.2s;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            padding: 20px;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        
+        /* Темная тема (по умолчанию) */
+        body.dark-theme {
+            background: #1a1a1a;
+            color: #e0e0e0;
+        }
+        
+        body.dark-theme .container {
+            background: #2d2d2d;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        body.dark-theme .header {
+            background: #3d3d3d;
+            border-bottom-color: #4a4a4a;
+        }
+        
+        body.dark-theme .message {
+            background: #3d3d3d;
+        }
+        
+        body.dark-theme .button-row button {
+            background: #4a4a4a;
+            color: #fff;
+        }
+        
+        body.dark-theme .button-row button:hover {
+            background: #5a5a5a;
+        }
+        
+        body.dark-theme .button-row button.primary {
+            background: #4CAF50;
+        }
+        
+        body.dark-theme .button-row button.danger {
+            background: #f44336;
+        }
+        
+        body.dark-theme .input-group input {
+            background: #2d2d2d;
+            color: #fff;
+            border-color: #4a4a4a;
+        }
+        
+        /* Светлая тема */
+        body.light-theme {
+            background: #f0f2f5;
+            color: #1a1a1a;
+        }
+        
+        body.light-theme .container {
+            background: #ffffff;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        
+        body.light-theme .header {
+            background: #f8f9fa;
+            border-bottom-color: #dee2e6;
+        }
+        
+        body.light-theme .message {
+            background: #f8f9fa;
+        }
+        
+        body.light-theme .button-row button {
+            background: #e9ecef;
+            color: #1a1a1a;
+        }
+        
+        body.light-theme .button-row button:hover {
+            background: #dee2e6;
+        }
+        
+        body.light-theme .button-row button.primary {
+            background: #0d6efd;
+            color: white;
+        }
+        
+        body.light-theme .button-row button.danger {
+            background: #dc3545;
+            color: white;
+        }
+        
+        body.light-theme .input-group input {
+            background: #ffffff;
+            color: #1a1a1a;
+            border-color: #dee2e6;
+        }
+        
+        .container {
+            max-width: 800px;
+            width: 100%;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        
+        .header {
+            padding: 20px;
+            border-bottom: 1px solid;
+        }
+        
+        .header h1 {
+            font-size: 1.5em;
+        }
+        
+        .header .user-info {
+            margin-top: 10px;
+            font-size: 0.9em;
+            opacity: 0.8;
+        }
+        
+        .user-selector {
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            border-bottom: 1px solid;
+        }
+        
+        .user-selector select {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid;
+            border-radius: 4px;
+            background: inherit;
+            color: inherit;
+        }
+        
+        .user-selector button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .content {
+            padding: 20px;
+            min-height: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .message {
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-left: 3px solid #4CAF50;
+        }
+        
+        .message.system {
+            border-left-color: #FFC107;
+        }
+        
+        .message .time {
+            font-size: 0.8em;
+            opacity: 0.6;
+            margin-bottom: 5px;
+        }
+        
+        .message .text {
+            line-height: 1.5;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        
+        .keyboard {
+            padding: 20px;
+            border-top: 1px solid;
+        }
+        
+        .button-grid {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        
+        .button-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .button-row button {
+            flex: 1;
+            min-width: 150px;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            word-break: break-word;
+        }
+        
+        .button-row button.primary {
+            color: white;
+        }
+        
+        .button-row button.danger {
+            color: white;
+        }
+        
+        .input-area {
+            padding: 20px;
+            border-top: 1px solid;
+        }
+        
+        .input-group {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .input-group input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid;
+            border-radius: 6px;
+            font-size: 1em;
+        }
+        
+        .input-group input:focus {
+            outline: none;
+            border-color: #4CAF50;
+        }
+        
+        .input-group button {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 6px;
+            background: #4CAF50;
+            color: white;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        
+        .input-group button:hover {
+            background: #45a049;
+        }
+        
+        .stats {
+            padding: 10px 20px;
+            font-size: 0.8em;
+            opacity: 0.6;
+            text-align: center;
+            border-top: 1px solid;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .coords-link {
+            color: #4CAF50;
+            font-weight: bold;
+            text-decoration: underline dotted;
+            cursor: pointer;
+        }
+        
+        .coords-link:hover {
+            opacity: 0.8;
+            text-decoration: underline;
+        }
+        
+        .address-text {
+            color: inherit;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body class="dark-theme">
+    <div class="container">
+        <div class="header">
+            <h1>🤖 Логгер для роботов</h1>
+            <div class="user-info" id="userInfo"></div>
+        </div>
+        
+        <div class="user-selector">
+            <select id="userSelect">
+                <option value="">Выберите пользователя...</option>
+            </select>
+            <button onclick="addNewUser()">➕ Новый пользователь</button>
+            <button onclick="switchUser()">🔑 Войти</button>
+        </div>
+        
+        <div class="content" id="chatContent">
+            <div class="message system">
+                <div class="time"></div>
+                <div class="text">Добро пожаловать! Выберите пользователя для начала работы.</div>
+            </div>
+        </div>
+        
+        <div class="input-area hidden" id="inputArea">
+            <div class="input-group">
+                <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
+                <button onclick="sendMessage()">Отправить</button>
+            </div>
+        </div>
+        
+        <div class="keyboard" id="keyboardArea"></div>
+        
+        <div class="stats" id="stats"></div>
+    </div>
+
+    <script>
+        // ============================================
+        // КОМАНДЫ ПО УМОЛЧАНИЮ
+        // ============================================
+        const DEFAULT_COMMANDS = [
+            {"name": "🚀 Начало маршрута", "log_text": "Начало маршрута"},
+            {"name": "🎮 Ручное управление", "log_text": "Ручное управление"},
+            {"name": "🚧 Проблемы с препятствиями", "log_text": "Проблемы с препятствиями"},
+            {"name": "🚗 Пропуск автомобиля", "log_text": "Пропуск автомобиля"},
+            {"name": "🚶 Пропуск пешехода/коляски", "log_text": "Пропуск пешехода/коляски"},
+            {"name": "🚙 Пропуск иного ТС", "log_text": "Пропуск иного ТС"},
+            {"name": "🤖 Пропуск иного агента", "log_text": "Пропуск иного агента"},
+            {"name": "↪️ Переход РПП", "log_text": "Переход РПП"},
+            {"name": "↩️ Переход ПП", "log_text": "Переход ПП"},
+            {"name": "⏸ Остановка без причины", "log_text": "Остановка без причины"},
+            {"name": "🔄 Манёвры на месте", "log_text": "Манёвры на месте"},
+            {"name": "📳 Рывки/дерганья/виляние", "log_text": "Рывки/дерганья/виляние"},
+            {"name": "↪️ Сход с маршрута", "log_text": "Сход с маршрута"},
+            {"name": "👆 Случайное нажатие", "log_text": "Случайное нажатие"},
+            {"name": "⚠️ Инцедент", "log_text": "Инцидент"},
+            {"name": "🔴 Крит", "log_text": "Крит"},
+            {"name": "🔴 Крит по КС", "log_text": "Крит по КС"},
+            {"name": "📡 Смена частоты WIFI", "log_text": "Смена частоты WiFi"},
+            {"name": "⏸️ Пауза в прохождении маршрута", "log_text": "Пауза в прохождении маршрута"},
+            {"name": "⚠️ Опасный маневр/подстраховка", "log_text": "Опасный маневр/подстраховка"},
+            {"name": "🌾 Проблемы с Кропом", "log_text": "Проблемы с Кропом"},
+            {"name": "📷 Проблемы с камерами", "log_text": "Проблемы с камерами"},
+            {"name": "✅ Approve danger polygon / traffic lights", "log_text": "Approve danger polygon / traffic lights"},
+            {"name": "🏁 Завершение маршрута", "log_text": "Завершение маршрута"}
+        ];
+
+        // ============================================
+        // КОНСТАНТЫ
+        // ============================================
+        const DEFAULT_COORDS_LINK = "https://yandex.ru/maps/?pt=37.6173,55.755826&z=16";
+        const DEFAULT_COORDS_TEXT = "55.7558, 37.6173 (центр Москвы)";
+
+        // ============================================
+        // КЛАСС ДЛЯ РАБОТЫ С ХРАНИЛИЩЕМ
+        // ============================================
+        class LocalDB {
+            constructor() {
+                this.loadData();
+            }
+            
+            loadData() {
+                const data = localStorage.getItem('robotLogger');
+                if (data) {
+                    this.data = JSON.parse(data);
+                } else {
+                    this.data = {
+                        users: {},
+                        currentUser: null
+                    };
+                    this.save();
+                }
+            }
+            
+            save() {
+                localStorage.setItem('robotLogger', JSON.stringify(this.data));
+            }
+            
+            getUsers() {
+                return Object.keys(this.data.users);
+            }
+            
+            getCurrentUser() {
+                return this.data.currentUser;
+            }
+            
+            setCurrentUser(login) {
+                this.data.currentUser = login;
+                this.save();
+            }
+            
+            createUser(login) {
+                if (!this.data.users[login]) {
+                    this.data.users[login] = {
+                        state: "welcome",
+                        logs: [],
+                        logs_archive: [],
+                        robot_info: ["", ""],
+                        robot_history: [[], []],
+                        commands: JSON.parse(JSON.stringify(DEFAULT_COMMANDS)),
+                        temporary: null,
+                        editing_command: null,
+                        coordinates: {
+                            current: DEFAULT_COORDS_LINK,
+                            last_input: DEFAULT_COORDS_TEXT,
+                            coord_counter: 1,
+                            address_counter: 1
+                        },
+                        settings: {
+                            theme: "dark"
+                        },
+                        created: new Date().toISOString()
+                    };
+                    this.save();
+                }
+                return this.data.users[login];
+            }
+            
+            getUser(login) {
+                return this.data.users[login] || this.createUser(login);
+            }
+            
+            setUser(login, key, value) {
+                if (this.data.users[login]) {
+                    this.data.users[login][key] = value;
+                    this.save();
+                }
+            }
+            
+            saveCommands(login, commands) {
+                if (this.data.users[login]) {
+                    this.data.users[login].commands = commands;
+                    this.save();
+                }
+            }
+            
+            // Парсинг координат из текста
+            parseCoordinates(input) {
+                // Очищаем входную строку
+                const cleanInput = input.trim();
+                
+                // 1. Формат ?pt=37.6173,55.755826 или ?pt=37.6173%2C55.755826
+                const ptMatch = cleanInput.match(/[?&]pt=([^&]+)/);
+                if (ptMatch) {
+                    let ptValue = decodeURIComponent(ptMatch[1]);
+                    const coordsMatch = ptValue.match(/(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)/);
+                    if (coordsMatch) {
+                        // В параметре pt уже правильный порядок: долгота, широта
+                        const lon = coordsMatch[1].trim();
+                        const lat = coordsMatch[2].trim();
+                        return { 
+                            type: 'coords', 
+                            lon: lon, 
+                            lat: lat,
+                            fullLink: `https://yandex.ru/maps/?pt=${lon},${lat}&z=16`
+                        };
+                    }
+                }
+                
+                // 2. Формат ?ll=37.6173,55.755896
+                const llMatch = cleanInput.match(/[?&]ll=([^&]+)/);
+                if (llMatch) {
+                    let llValue = decodeURIComponent(llMatch[1]);
+                    const coordsMatch = llValue.match(/(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)/);
+                    if (coordsMatch) {
+                        // В параметре ll тоже долгота, широта
+                        const lon = coordsMatch[1].trim();
+                        const lat = coordsMatch[2].trim();
+                        return { 
+                            type: 'coords', 
+                            lon: lon, 
+                            lat: lat,
+                            fullLink: `https://yandex.ru/maps/?pt=${lon},${lat}&z=16`
+                        };
+                    }
+                }
+                
+                // 3. Простые числовые координаты
+                // Обычно люди вводят: широта, долгота
+                const coordsMatch = cleanInput.match(/(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)/);
+                if (coordsMatch) {
+                    // Предполагаем, что пользователь ввел: широта, долгота
+                    const lat = coordsMatch[1].trim().replace(/[^\d.-]/g, ''); // широта
+                    const lon = coordsMatch[2].trim().replace(/[^\d.-]/g, ''); // долгота
+                    return { 
+                        type: 'coords', 
+                        lon: lon, 
+                        lat: lat,
+                        fullLink: `https://yandex.ru/maps/?pt=${lon},${lat}&z=16`
+                    };
+                }
+                
+                // 4. Ссылка Яндекс.Карт без извлекаемых координат
+                if (cleanInput.includes('yandex.ru/maps')) {
+                    return { 
+                        type: 'coords', 
+                        lon: null, 
+                        lat: null,
+                        fullLink: cleanInput.startsWith('http') ? cleanInput : `https://${cleanInput}`
+                    };
+                }
+                
+                // 5. Текст (адрес)
+                return { type: 'address', text: cleanInput };
+            }
+            
+            updateCoordinates(login, input) {
+                const user = this.getUser(login);
+                const coords = user.coordinates;
+                
+                const parsed = this.parseCoordinates(input);
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString();
+                let logEntry;
+                
+                if (parsed.type === 'coords') {
+                    // Это координаты - обновляем текущие
+                    const linkToSave = parsed.fullLink || DEFAULT_COORDS_LINK;
+                    coords.current = linkToSave;
+                    coords.last_input = parsed.lon && parsed.lat ? `${parsed.lat}, ${parsed.lon}` : input;
+                    
+                    // В логе только "Координаты_1" без ссылки
+                    logEntry = {
+                        text: `${timeStr} Координаты_${coords.coord_counter}`,
+                        link: linkToSave,
+                        type: 'coords'
+                    };
+                    coords.coord_counter += 1;
+                } else {
+                    // Это адрес - показываем полный текст
+                    logEntry = {
+                        text: `${timeStr} Адрес_${coords.address_counter}: ${input}`,
+                        link: null,
+                        type: 'address'
+                    };
+                    coords.address_counter += 1;
+                }
+                
+                // Добавляем в логи
+                const logs = [...user.logs, logEntry];
+                
+                this.data.users[login].logs = logs;
+                this.save();
+                
+                return logEntry;
+            }
+            
+            resetCounters(login) {
+                if (this.data.users[login]) {
+                    this.data.users[login].coordinates.coord_counter = 1;
+                    this.data.users[login].coordinates.address_counter = 1;
+                    this.save();
+                }
+            }
+            
+            toggleTheme(login) {
+                if (this.data.users[login]) {
+                    const current = this.data.users[login].settings.theme;
+                    this.data.users[login].settings.theme = current === 'dark' ? 'light' : 'dark';
+                    this.save();
+                    return this.data.users[login].settings.theme;
+                }
+                return 'dark';
+            }
+        }
+
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================
+        const db = new LocalDB();
+        let currentUser = null;
+
+        // ============================================
+        // ФУНКЦИИ ИНТЕРФЕЙСА
+        // ============================================
+        function addMessage(text, type = 'system', isHTML = false) {
+            const chat = document.getElementById('chatContent');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+            
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'time';
+            timeDiv.textContent = new Date().toLocaleTimeString();
+            
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text';
+            
+            if (isHTML) {
+                textDiv.innerHTML = text;
+            } else {
+                textDiv.textContent = text;
+            }
+            
+            messageDiv.appendChild(timeDiv);
+            messageDiv.appendChild(textDiv);
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function clearKeyboard() {
+            document.getElementById('keyboardArea').innerHTML = '';
+        }
+
+        function showKeyboard(buttons) {
+            const keyboardArea = document.getElementById('keyboardArea');
+            keyboardArea.innerHTML = '';
+            
+            const grid = document.createElement('div');
+            grid.className = 'button-grid';
+            
+            buttons.forEach(row => {
+                const rowDiv = document.createElement('div');
+                rowDiv.className = 'button-row';
+                
+                row.forEach(btn => {
+                    const button = document.createElement('button');
+                    button.textContent = btn.text;
+                    button.className = btn.class || '';
+                    button.onclick = () => btn.callback();
+                    rowDiv.appendChild(button);
+                });
+                
+                grid.appendChild(rowDiv);
+            });
+            
+            keyboardArea.appendChild(grid);
+        }
+
+        function showInput(placeholder = 'Введите сообщение...') {
+            document.getElementById('inputArea').classList.remove('hidden');
+            document.getElementById('messageInput').placeholder = placeholder;
+            document.getElementById('messageInput').focus();
+        }
+
+        function hideInput() {
+            document.getElementById('inputArea').classList.add('hidden');
+        }
+
+        function updateUserInfo() {
+            const info = document.getElementById('userInfo');
+            if (currentUser) {
+                const user = db.getUser(currentUser);
+                info.textContent = `Пользователь: ${currentUser} | Команд: ${user.commands.length}`;
+            } else {
+                info.textContent = 'Пользователь не выбран';
+            }
+        }
+
+        function updateStats() {
+            const stats = document.getElementById('stats');
+            if (currentUser) {
+                const user = db.getUser(currentUser);
+                stats.textContent = `📊 Записей: ${user.logs.length} | Архив: ${user.logs_archive.length} | Координат: ${user.coordinates.coord_counter-1} | Адресов: ${user.coordinates.address_counter-1}`;
+            } else {
+                stats.textContent = '';
+            }
+        }
+
+        function loadUsers() {
+            const select = document.getElementById('userSelect');
+            const users = db.getUsers();
+            
+            select.innerHTML = '<option value="">Выберите пользователя...</option>';
+            users.forEach(user => {
+                const option = document.createElement('option');
+                option.value = user;
+                option.textContent = user;
+                select.appendChild(option);
+            });
+        }
+
+        function applyTheme(theme) {
+            document.body.className = theme === 'dark' ? 'dark-theme' : 'light-theme';
+        }
+
+        // Глобальный обработчик кликов для координат
+        document.addEventListener('click', function(e) {
+            if (e.target.classList.contains('coords-link')) {
+                const link = e.target.dataset.link;
+                if (link) {
+                    window.open(link, '_blank');
+                }
+            }
+        });
+
+        // ============================================
+        // УПРАВЛЕНИЕ ПОЛЬЗОВАТЕЛЯМИ
+        // ============================================
+        function addNewUser() {
+            const login = prompt('Введите логин нового пользователя:');
+            if (login && login.trim()) {
+                db.createUser(login.trim());
+                loadUsers();
+                addMessage(`✅ Пользователь ${login} создан`, 'system');
+            }
+        }
+
+        function switchUser() {
+            const select = document.getElementById('userSelect');
+            const login = select.value;
+            
+            if (login) {
+                currentUser = login;
+                db.setCurrentUser(login);
+                const user = db.getUser(login);
+                applyTheme(user.settings.theme);
+                updateUserInfo();
+                updateStats();
+                clearKeyboard();
+                hideInput();
+                
+                // Очищаем чат
+                document.getElementById('chatContent').innerHTML = '';
+                
+                addMessage(`👋 Добро пожаловать, ${login}!`, 'system');
+                handleMainMenu();
+            }
+        }
+
+        // ============================================
+        // ОСНОВНЫЕ ФУНКЦИИ
+        // ============================================
+        function handleMainMenu() {
+            if (!currentUser) return;
+            
+            addMessage('🎯 Главное меню', 'system');
+            
+            showKeyboard([
+                [{ text: '🟩 Начать запись', class: 'primary', callback: () => handleStartRobot() }],
+                [{ text: '📄 Последний лог', callback: () => handleShowLastLog() }],
+                [{ text: '📑 Архив логов', callback: () => handleShowArchive() }],
+                [{ text: '⚙️ Мои команды', callback: () => handleUserCommands() }],
+                [{ text: '🌓 Переключить тему', callback: () => handleToggleTheme() }]
+            ]);
+            
+            hideInput();
+            db.setUser(currentUser, 'state', 'main_menu');
+        }
+
+        function handleToggleTheme() {
+            if (!currentUser) return;
+            
+            const newTheme = db.toggleTheme(currentUser);
+            applyTheme(newTheme);
+            addMessage(`🌓 Тема переключена на ${newTheme === 'dark' ? 'темную' : 'светлую'}`, 'system');
+            handleMainMenu();
+        }
+
+        // ============================================
+        // УПРАВЛЕНИЕ КОМАНДАМИ
+        // ============================================
+        function handleUserCommands() {
+            if (!currentUser) return;
+            
+            const user = db.getUser(currentUser);
+            const commands = user.commands;
+            
+            let text = `⚙️ **Мои команды**\n\nВсего команд: ${commands.length}\n\n`;
+            commands.slice(0, 10).forEach((cmd, i) => {
+                text += `${i+1}. ${cmd.name}\n`;
+            });
+            
+            addMessage(text, 'system');
+            
+            showKeyboard([
+                [{ text: '📋 Показать все', callback: () => handleUserList() }],
+                [{ text: '➕ Добавить команду', callback: () => handleUserAddStart() }],
+                [{ text: '✏️ Редактировать команду', callback: () => handleUserEditStart() }],
+                [{ text: '❌ Удалить команду', callback: () => handleUserDeleteStart() }],
+                [{ text: '🔄 Сбросить к стандартным', callback: () => handleUserReset() }],
+                [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
+            ]);
+            
+            db.setUser(currentUser, 'state', 'commands_menu');
+        }
+
+        function handleUserList() {
+            if (!currentUser) return;
+            
+            const user = db.getUser(currentUser);
+            const commands = user.commands;
+            
+            let text = '📋 **Все команды:**\n\n';
+            commands.forEach((cmd, i) => {
+                text += `${i+1}. **${cmd.name}**\n   → ${cmd.log_text}\n\n`;
+            });
+            
+            addMessage(text, 'system');
+            
+            showKeyboard([
+                [{ text: '◀️ Назад', callback: () => handleUserCommands() }]
+            ]);
+        }
+
+        function handleUserAddStart() {
+            addMessage('✏️ Введите **название** новой команды:', 'system');
+            showInput('Название команды...');
+            db.setUser(currentUser, 'state', 'user_add_name');
+        }
+
+        function handleUserAddName(text) {
+            db.setUser(currentUser, 'temporary', { name: text });
+            addMessage('✏️ Введите **текст для лога** (можно с эмодзи):', 'system');
+            showInput('Текст лога...');
+            db.setUser(currentUser, 'state', 'user_add_log');
+        }
+
+        function handleUserAddLog(text) {
+            const user = db.getUser(currentUser);
+            const temp = user.temporary;
+            
+            if (temp && temp.name) {
+                const commands = [...user.commands];
+                commands.push({ name: temp.name, log_text: text });
+                db.saveCommands(currentUser, commands);
+                addMessage(`✅ Команда **'${temp.name}'** добавлена!`, 'system');
+            }
+            
+            handleUserCommands();
+        }
+
+        function handleUserDeleteStart() {
+            const user = db.getUser(currentUser);
+            const commands = user.commands;
+            
+            if (commands.length === 0) {
+                addMessage('❌ Нет команд для удаления', 'error');
+                handleUserCommands();
+                return;
+            }
+            
+            addMessage('❌ **Выберите команду для удаления:**', 'system');
+            
+            const buttons = commands.map((cmd, i) => {
+                return [{
+                    text: `${i+1}. ${cmd.name}`,
+                    callback: () => handleUserDeleteConfirm(i)
+                }];
+            });
+            
+            buttons.push([{ text: '◀️ Назад', callback: () => handleUserCommands() }]);
+            showKeyboard(buttons);
+        }
+
+        function handleUserDeleteConfirm(index) {
+            const user = db.getUser(currentUser);
+            const cmd = user.commands[index];
+            
+            showKeyboard([
+                [{ text: '✅ Да, удалить', class: 'danger', callback: () => handleUserDeleteExecute(index) }],
+                [{ text: '❌ Нет, отмена', callback: () => handleUserDeleteStart() }]
+            ]);
+        }
+
+        function handleUserDeleteExecute(index) {
+            const user = db.getUser(currentUser);
+            const commands = [...user.commands];
+            const removed = commands.splice(index, 1)[0];
+            db.saveCommands(currentUser, commands);
+            addMessage(`✅ Команда **'${removed.name}'** удалена!`, 'system');
+            handleUserCommands();
+        }
+
+        function handleUserEditStart() {
+            const user = db.getUser(currentUser);
+            const commands = user.commands;
+            
+            if (commands.length === 0) {
+                addMessage('❌ Нет команд для редактирования', 'error');
+                handleUserCommands();
+                return;
+            }
+            
+            addMessage('✏️ **Выберите команду для редактирования:**', 'system');
+            
+            const buttons = commands.map((cmd, i) => {
+                return [{
+                    text: `${i+1}. ${cmd.name}`,
+                    callback: () => handleUserEditSelect(i)
+                }];
+            });
+            
+            buttons.push([{ text: '◀️ Назад', callback: () => handleUserCommands() }]);
+            showKeyboard(buttons);
+        }
+
+        function handleUserEditSelect(index) {
+            const user = db.getUser(currentUser);
+            const cmd = user.commands[index];
+            
+            db.setUser(currentUser, 'editing_command', index);
+            addMessage(`Редактирование: **${cmd.name}**\n\nТекущий текст лога: ${cmd.log_text}\n\nВведите **новый текст** для лога:`, 'system');
+            showInput('Новый текст лога...');
+            db.setUser(currentUser, 'state', 'user_edit_log');
+        }
+
+        function handleUserEditLog(text) {
+            const user = db.getUser(currentUser);
+            const idx = user.editing_command;
+            
+            if (idx !== null && idx >= 0 && idx < user.commands.length) {
+                const commands = [...user.commands];
+                const oldName = commands[idx].name;
+                commands[idx].log_text = text;
+                db.saveCommands(currentUser, commands);
+                addMessage(`✅ Команда **'${oldName}'** обновлена!`, 'system');
+            }
+            
+            handleUserCommands();
+        }
+
+        function handleUserReset() {
+            showKeyboard([
+                [{ text: '✅ Да, сбросить', class: 'danger', callback: () => handleUserResetConfirm() }],
+                [{ text: '❌ Нет, отмена', callback: () => handleUserCommands() }]
+            ]);
+        }
+
+        function handleUserResetConfirm() {
+            db.saveCommands(currentUser, JSON.parse(JSON.stringify(DEFAULT_COMMANDS)));
+            addMessage('✅ Команды сброшены к стандартному набору!', 'system');
+            handleUserCommands();
+        }
+
+        // ============================================
+        // ЗАПИСЬ ЛОГОВ
+        // ============================================
+        function handleStartRobot() {
+            const user = db.getUser(currentUser);
+            const robotHistory = user.robot_history[0];
+            
+            addMessage('🎯 » 🟩 Начать запись\n\n📝 Введите **номер робота** (можно буквы и цифры):', 'system');
+            
+            const buttons = [[{ text: '❌ Отменить', callback: () => handleMainMenu() }]];
+            
+            robotHistory.slice(-3).forEach(robot => {
+                if (robot) {
+                    buttons.push([{
+                        text: `⚡️ ${robot}`,
+                        callback: () => handleSelectRobot(robot)
+                    }]);
+                }
+            });
+            
+            showKeyboard(buttons);
+            showInput('Номер робота...');
+            db.setUser(currentUser, 'state', 'awaiting_robot');
+        }
+
+        function handleSelectRobot(robotNum) {
+            const user = db.getUser(currentUser);
+            const robotNumStr = String(robotNum);
+            
+            const robotInfo = [...user.robot_info];
+            robotInfo[0] = robotNumStr;
+            
+            const robotHistory = [...user.robot_history];
+            if (!robotHistory[0].includes(robotNumStr)) {
+                robotHistory[0].push(robotNumStr);
+                if (robotHistory[0].length > 3) robotHistory[0].shift();
+            }
+            
+            db.setUser(currentUser, 'robot_info', robotInfo);
+            db.setUser(currentUser, 'robot_history', robotHistory);
+            
+            handleRouteSelection();
+        }
+
+        function handleRouteSelection() {
+            const user = db.getUser(currentUser);
+            const routeHistory = user.robot_history[1];
+            
+            addMessage('📝 Введите **название маршрута** (можно буквы и цифры):', 'system');
+            
+            const buttons = [[{ text: '❌ Отменить', callback: () => handleMainMenu() }]];
+            
+            routeHistory.slice(-3).forEach(route => {
+                if (route) {
+                    buttons.push([{
+                        text: `⚡️ ${route}`,
+                        callback: () => handleSelectRoute(route)
+                    }]);
+                }
+            });
+            
+            showKeyboard(buttons);
+            showInput('Название маршрута...');
+            db.setUser(currentUser, 'state', 'awaiting_route');
+        }
+
+        function handleSelectRoute(routeNum) {
+            const user = db.getUser(currentUser);
+            const routeNumStr = String(routeNum);
+            
+            const robotInfo = [...user.robot_info];
+            robotInfo[1] = routeNumStr;
+            
+            const robotHistory = [...user.robot_history];
+            if (!robotHistory[1].includes(routeNumStr)) {
+                robotHistory[1].push(routeNumStr);
+                if (robotHistory[1].length > 3) robotHistory[1].shift();
+            }
+            
+            db.setUser(currentUser, 'robot_info', robotInfo);
+            db.setUser(currentUser, 'robot_history', robotHistory);
+            
+            // Сбрасываем счетчики для новой сессии
+            db.resetCounters(currentUser);
+            
+            showLoggingScreen();
+        }
+
+        function showLoggingScreen() {
+            const user = db.getUser(currentUser);
+            const robotInfo = user.robot_info;
+            const logs = user.logs || [];
+            const commands = user.commands;
+            
+            // Форматируем логи с кликабельными координатами
+            let logsHTML = '';
+            logs.slice(-15).forEach(log => {
+                if (typeof log === 'string') {
+                    // Старый формат (для совместимости)
+                    logsHTML += `<br>${log}`;
+                } else if (log.type === 'coords' && log.link) {
+                    // Координаты - кликабельные, показываем только текст
+                    logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.text}</span>`;
+                } else {
+                    // Адрес - показываем полный текст
+                    logsHTML += `<br><span class="address-text">${log.text}</span>`;
+                }
+            });
+            
+            let header = `🤖 **${robotInfo[0] || '?'}** • 🗺 **${robotInfo[1] || '?'}**\n`;
+            
+            addMessage(header + (logsHTML || '<br>(пока нет записей)'), 'system', true);
+            
+            // Верхняя панель с фиксированными кнопками
+            const buttons = [
+                [
+                    { text: '❌ Закончить', class: 'danger', callback: () => handleStopRecording() },
+                    { text: '❌ Удалить последнюю', class: 'danger', callback: () => handleDeleteLastLog() },
+                    { text: '🗺️ Вставить координаты', class: 'primary', callback: () => handlePasteCoordinates() },
+                    { text: '👁️ Посмотреть координаты', callback: () => handleViewCoordinates() }
+                ]
+            ];
+            
+            // Команды пользователя (по две в ряд)
+            for (let i = 0; i < commands.length; i += 2) {
+                const row = [];
+                row.push({
+                    text: commands[i].name,
+                    callback: () => handleAction(i)
+                });
+                
+                if (i + 1 < commands.length) {
+                    row.push({
+                        text: commands[i+1].name,
+                        callback: () => handleAction(i+1)
+                    });
+                }
+                
+                buttons.push(row);
+            }
+            
+            showKeyboard(buttons);
+            showInput('Или введите свой текст...');
+            db.setUser(currentUser, 'state', 'logging');
+        }
+
+        function handleAction(index) {
+            const user = db.getUser(currentUser);
+            const command = user.commands[index];
+            
+            const now = new Date();
+            const timeStr = now.toLocaleTimeString();
+            
+            // Сохраняем как простой текст (не объект)
+            const logEntry = `${timeStr} ${command.log_text}`;
+            
+            const logs = [...user.logs, logEntry];
+            
+            db.setUser(currentUser, 'logs', logs);
+            updateStats();
+            showLoggingScreen();
+        }
+
+        function handleDeleteLastLog() {
+            const user = db.getUser(currentUser);
+            const logs = [...user.logs];
+            
+            if (logs.length > 0) {
+                logs.pop();
+                db.setUser(currentUser, 'logs', logs);
+                addMessage('✅ Последняя запись удалена', 'system');
+            }
+            
+            showLoggingScreen();
+        }
+
+        // ============================================
+        // ФУНКЦИИ ДЛЯ РАБОТЫ С КООРДИНАТАМИ
+        // ============================================
+        function handlePasteCoordinates() {
+            addMessage('🗺️ **Вставьте координаты** (любой формат):\n\n• Ссылка Яндекс.Карт\n• Числовые координаты (широта, долгота)\n• Текстовый адрес', 'system');
+            
+            // Показываем специальную клавиатуру для режима ввода координат
+            showKeyboard([
+                [
+                    { text: '👁️ Посмотреть текущие координаты', callback: () => handleViewCoordinates() },
+                    { text: '❌ Отмена', callback: () => showLoggingScreen() }
+                ]
+            ]);
+            
+            showInput('Вставьте координаты или адрес...');
+            db.setUser(currentUser, 'state', 'awaiting_coordinates');
+        }
+
+        function handleSaveCoordinates(input) {
+            const logEntry = db.updateCoordinates(currentUser, input);
+            
+            // Показываем сообщение
+            if (logEntry.type === 'coords') {
+                addMessage(`✅ Координаты сохранены`, 'system');
+            } else {
+                addMessage(`📝 Адрес сохранен`, 'system');
+            }
+            
+            updateStats();
+            showLoggingScreen();
+        }
+
+        function handleViewCoordinates() {
+            const user = db.getUser(currentUser);
+            const coords = user.coordinates;
+            
+            // Открываем в новой вкладке
+            window.open(coords.current, '_blank');
+            addMessage(`👁️ Открыты координаты: ${coords.last_input}`, 'system');
+        }
+
+        function handleStopRecording() {
+            const user = db.getUser(currentUser);
+            const robotInfo = user.robot_info;
+            const logs = user.logs;
+            
+            const now = new Date();
+            const currentTime = now.toLocaleTimeString();
+            
+            const logFooter = [robotInfo[0], robotInfo[1], currentTime];
+            
+            const archive = [...user.logs_archive];
+            const archiveEntry = [...logs, logFooter];
+            archive.unshift(archiveEntry);
+            
+            if (archive.length > 10) {
+                archive.length = 10;
+            }
+            
+            db.setUser(currentUser, 'logs_archive', archive);
+            db.setUser(currentUser, 'logs', []);
+            
+            addMessage('✅ Запись завершена и сохранена в архиве!', 'system');
+            updateStats();
+            handleMainMenu();
+        }
+
+        function handleShowLastLog() {
+            const user = db.getUser(currentUser);
+            const archive = user.logs_archive;
+            
+            if (archive.length === 0) {
+                addMessage('❌ Нет сохраненных проездов', 'error');
+            } else {
+                const lastLog = archive[0];
+                const logsText = lastLog.slice(0, -1).join('\n');
+                const footer = lastLog[lastLog.length - 1];
+                
+                const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}** • ${footer[2]}\n\n`;
+                addMessage(header + logsText, 'system');
+            }
+            
+            showKeyboard([
+                [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
+            ]);
+        }
+
+        function handleShowArchive() {
+            const user = db.getUser(currentUser);
+            const archive = user.logs_archive;
+            
+            if (archive.length === 0) {
+                addMessage('❌ Архив пуст', 'error');
+                showKeyboard([
+                    [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
+                ]);
+                return;
+            }
+            
+            let text = '📑 **Архив проездов** (последние 10)\n\n';
+            const buttons = [];
+            
+            archive.forEach((entry, i) => {
+                const footer = entry[entry.length - 1];
+                text += `${i+1}. 🤖 ${footer[0]} • 🗺 ${footer[1]} • ${footer[2]}\n`;
+                buttons.push([{
+                    text: `📄 Проезд ${i+1}`,
+                    callback: () => handleViewArchiveItem(i)
+                }]);
+            });
+            
+            addMessage(text, 'system');
+            buttons.push([{ text: '◀️ Назад', callback: () => handleMainMenu() }]);
+            showKeyboard(buttons);
+        }
+
+        function handleViewArchiveItem(index) {
+            const user = db.getUser(currentUser);
+            const entry = user.logs_archive[index];
+            
+            const logsText = entry.slice(0, -1).join('\n');
+            const footer = entry[entry.length - 1];
+            
+            const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}** • ${footer[2]}\n\n`;
+            addMessage('📄 **Архивный лог**\n\n' + header + logsText, 'system');
+            
+            showKeyboard([
+                [{ text: '◀️ Назад в архив', callback: () => handleShowArchive() }]
+            ]);
+        }
+
+        // ============================================
+        // ОБРАБОТКА СООБЩЕНИЙ
+        // ============================================
+        function sendMessage() {
+            if (!currentUser) {
+                addMessage('❌ Сначала выберите пользователя', 'error');
+                return;
+            }
+            
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text) return;
+            
+            input.value = '';
+            
+            addMessage(`👤 ${text}`, 'system');
+            
+            const user = db.getUser(currentUser);
+            const state = user.state;
+            
+            if (state === 'awaiting_robot') {
+                handleSelectRobot(text);
+            } else if (state === 'awaiting_route') {
+                handleSelectRoute(text);
+            } else if (state === 'awaiting_coordinates') {
+                handleSaveCoordinates(text);
+            } else if (state === 'logging') {
+                const now = new Date();
+                const timeStr = now.toLocaleTimeString();
+                
+                // Сохраняем как простой текст
+                const logs = [...user.logs, `${timeStr} ${text}`];
+                db.setUser(currentUser, 'logs', logs);
+                updateStats();
+                showLoggingScreen();
+            } else if (state === 'user_add_name') {
+                handleUserAddName(text);
+            } else if (state === 'user_add_log') {
+                handleUserAddLog(text);
+            } else if (state === 'user_edit_log') {
+                handleUserEditLog(text);
+            } else {
+                handleMainMenu();
+            }
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // ============================================
+        // ИНИЦИАЛИЗАЦИЯ ПРИ ЗАГРУЗКЕ
+        // ============================================
+        window.onload = function() {
+            loadUsers();
+            
+            // Проверяем сохраненного пользователя
+            const savedUser = db.getCurrentUser();
+            if (savedUser && db.getUsers().includes(savedUser)) {
+                document.getElementById('userSelect').value = savedUser;
+                switchUser();
+            }
+            
+            // Добавляем тестовых пользователей если никого нет
+            if (db.getUsers().length === 0) {
+                db.createUser('Оператор_1');
+                db.createUser('Оператор_2');
+                loadUsers();
+            }
+        };
+    </script>
+</body>
+</html>
