@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
     <title>Логгер для роботов</title>
     <style>
         * {
@@ -136,15 +136,23 @@
             gap: 10px;
             align-items: center;
             border-bottom: 1px solid;
+            flex-wrap: wrap;
         }
         
         .user-selector select {
             flex: 1;
+            min-width: 200px;
             padding: 8px;
             border: 1px solid;
             border-radius: 4px;
             background: inherit;
             color: inherit;
+        }
+        
+        .user-selector .action-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
         }
         
         .user-selector button {
@@ -154,6 +162,15 @@
             cursor: pointer;
             background: #4CAF50;
             color: white;
+            white-space: nowrap;
+        }
+        
+        .user-selector button.danger {
+            background: #f44336;
+        }
+        
+        .user-selector button.primary {
+            background: #4CAF50;
         }
         
         .content {
@@ -287,11 +304,102 @@
             color: inherit;
             font-weight: bold;
         }
+
+        /* Мобильная адаптация */
+        @media (max-width: 600px) {
+            body {
+                padding: 10px;
+            }
+            .header h1 {
+                font-size: 1.2em;
+            }
+            .user-selector {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .user-selector select {
+                width: 100%;
+            }
+            .user-selector .action-buttons {
+                width: 100%;
+            }
+            .user-selector button {
+                flex: 1;
+            }
+            .button-row button {
+                min-width: 100%;
+            }
+            .input-group {
+                flex-direction: column;
+            }
+            .input-group button {
+                width: 100%;
+            }
+            .content {
+                max-height: 350px;
+            }
+        }
+
+        /* Стили для чекбоксов в режиме выбора */
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px;
+            background: inherit;
+            border: 1px solid;
+            border-radius: 4px;
+            margin-bottom: 5px;
+        }
+        .checkbox-item input[type="checkbox"] {
+            width: 20px;
+            height: 20px;
+            cursor: pointer;
+        }
+        .checkbox-item label {
+            flex: 1;
+            cursor: pointer;
+            font-size: 0.9em;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .global-actions {
+            padding: 5px 10px 10px 10px;
+ 	    display: flex;
+            gap: 5px;
+            border-bottom: 1px solid;
+            flex-shrink: 0;
+        }
+        
+        .global-actions button {
+            flex: 1;
+            padding: 4px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.7em;
+            font-weight: 500;
+        }
+        
+        .global-actions button.primary {
+            background: #afad4c;
+            color: white;
+        }
+        
+        .global-actions button.danger {
+            background: #f44336;
+            color: white;
+        }
     </style>
 </head>
 <body class="dark-theme">
     <div class="container">
         <div class="header">
+<div class="global-actions" id="globalActions">
+            <button class="primary" onclick="handleFullBackupNoUser()">💾 Экспорт всех данных</button>
+            <button class="danger" onclick="handleClearCacheNoUser()">🗑️ Очистка кэша</button>
+        </div>
             <h1>🤖 Логгер для роботов</h1>
             <div class="user-info" id="userInfo"></div>
         </div>
@@ -300,8 +408,11 @@
             <select id="userSelect">
                 <option value="">Выберите пользователя...</option>
             </select>
-            <button onclick="addNewUser()">➕ Новый пользователь</button>
-            <button onclick="switchUser()">🔑 Войти</button>
+            <div class="action-buttons">
+                <button onclick="addNewUser()">➕ Новый</button>
+                <button onclick="switchUser()">🔑 Войти</button>
+ 
+            </div>
         </div>
         
         <div class="content" id="chatContent">
@@ -321,8 +432,10 @@
         <div class="keyboard" id="keyboardArea"></div>
         
         <div class="stats" id="stats"></div>
+
     </div>
 
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
     <script>
         // ============================================
         // КОМАНДЫ ПО УМОЛЧАНИЮ
@@ -357,8 +470,9 @@
         // ============================================
         // КОНСТАНТЫ
         // ============================================
-        const DEFAULT_COORDS_LINK = "https://yandex.ru/maps/?pt=37.6173,55.755826&z=16";
-        const DEFAULT_COORDS_TEXT = "55.7558, 37.6173 (центр Москвы)";
+        const DEFAULT_COORDS_LINK = "https://yandex.ru/maps/?pt=38.617345,55.755826&z=16";
+        const DEFAULT_COORDS_TEXT = "55.755826, 38.617345";
+        const MAX_ARCHIVE_SIZE = 32;
 
         // ============================================
         // КЛАСС ДЛЯ РАБОТЫ С ХРАНИЛИЩЕМ
@@ -445,7 +559,6 @@
             
             // Парсинг координат из текста
             parseCoordinates(input) {
-                // Очищаем входную строку
                 const cleanInput = input.trim();
                 
                 // 1. Формат ?pt=37.6173,55.755826 или ?pt=37.6173%2C55.755826
@@ -454,7 +567,6 @@
                     let ptValue = decodeURIComponent(ptMatch[1]);
                     const coordsMatch = ptValue.match(/(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)/);
                     if (coordsMatch) {
-                        // В параметре pt уже правильный порядок: долгота, широта
                         const lon = coordsMatch[1].trim();
                         const lat = coordsMatch[2].trim();
                         return { 
@@ -472,7 +584,6 @@
                     let llValue = decodeURIComponent(llMatch[1]);
                     const coordsMatch = llValue.match(/(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)/);
                     if (coordsMatch) {
-                        // В параметре ll тоже долгота, широта
                         const lon = coordsMatch[1].trim();
                         const lat = coordsMatch[2].trim();
                         return { 
@@ -484,13 +595,11 @@
                     }
                 }
                 
-                // 3. Простые числовые координаты
-                // Обычно люди вводят: широта, долгота
+                // 3. Простые числовые координаты (широта, долгота)
                 const coordsMatch = cleanInput.match(/(-?\d+\.?\d*)\s*[, ]\s*(-?\d+\.?\d*)/);
                 if (coordsMatch) {
-                    // Предполагаем, что пользователь ввел: широта, долгота
-                    const lat = coordsMatch[1].trim().replace(/[^\d.-]/g, ''); // широта
-                    const lon = coordsMatch[2].trim().replace(/[^\d.-]/g, ''); // долгота
+                    const lat = coordsMatch[1].trim().replace(/[^\d.-]/g, '');
+                    const lon = coordsMatch[2].trim().replace(/[^\d.-]/g, '');
                     return { 
                         type: 'coords', 
                         lon: lon, 
@@ -523,12 +632,10 @@
                 let logEntry;
                 
                 if (parsed.type === 'coords') {
-                    // Это координаты - обновляем текущие
                     const linkToSave = parsed.fullLink || DEFAULT_COORDS_LINK;
                     coords.current = linkToSave;
                     coords.last_input = parsed.lon && parsed.lat ? `${parsed.lat}, ${parsed.lon}` : input;
                     
-                    // В логе только "Координаты_1" без ссылки
                     logEntry = {
                         text: `${timeStr} Координаты_${coords.coord_counter}`,
                         link: linkToSave,
@@ -536,7 +643,6 @@
                     };
                     coords.coord_counter += 1;
                 } else {
-                    // Это адрес - показываем полный текст
                     logEntry = {
                         text: `${timeStr} Адрес_${coords.address_counter}: ${input}`,
                         link: null,
@@ -545,9 +651,7 @@
                     coords.address_counter += 1;
                 }
                 
-                // Добавляем в логи
                 const logs = [...user.logs, logEntry];
-                
                 this.data.users[login].logs = logs;
                 this.save();
                 
@@ -659,7 +763,7 @@
             const stats = document.getElementById('stats');
             if (currentUser) {
                 const user = db.getUser(currentUser);
-                stats.textContent = `📊 Записей: ${user.logs.length} | Архив: ${user.logs_archive.length} | Координат: ${user.coordinates.coord_counter-1} | Адресов: ${user.coordinates.address_counter-1}`;
+                stats.textContent = `📊 Записей: ${user.logs.length} | Архив: ${user.logs_archive.length}/${MAX_ARCHIVE_SIZE}`;
             } else {
                 stats.textContent = '';
             }
@@ -718,7 +822,6 @@
                 clearKeyboard();
                 hideInput();
                 
-                // Очищаем чат
                 document.getElementById('chatContent').innerHTML = '';
                 
                 addMessage(`👋 Добро пожаловать, ${login}!`, 'system');
@@ -738,7 +841,7 @@
                 [{ text: '🟩 Начать запись', class: 'primary', callback: () => handleStartRobot() }],
                 [{ text: '📄 Последний лог', callback: () => handleShowLastLog() }],
                 [{ text: '📑 Архив логов', callback: () => handleShowArchive() }],
-                [{ text: '⚙️ Мои команды', callback: () => handleUserCommands() }],
+                [{ text: '⚙️ Настройки', callback: () => handleUserCommands() }],
                 [{ text: '🌓 Переключить тему', callback: () => handleToggleTheme() }]
             ]);
             
@@ -756,7 +859,139 @@
         }
 
         // ============================================
-        // УПРАВЛЕНИЕ КОМАНДАМИ
+        // ФУНКЦИИ ПОЛНОГО БЭКАПА И ОЧИСТКИ КЭША (БЕЗ ПОЛЬЗОВАТЕЛЯ)
+        // ============================================
+        function generateReadme() {
+            return `ЛОГГЕР ДЛЯ РОБОТОВ - ПОЛНЫЙ БЭКАП ДАННЫХ
+===========================================
+Дата создания: ${new Date().toLocaleString()}
+
+Структура архива:
+- metadata.json - общая информация о бэкапе
+- users/[логин]/ - папка каждого пользователя
+  * commands.json - пользовательские команды
+  * settings.json - настройки (тема, координаты, история)
+  * archive.json - все архивы проездов в JSON
+  * logs_export/ - все проезды в текстовом формате
+
+ВОССТАНОВЛЕНИЕ:
+1. Для восстановления команд используйте импорт в меню "Настройки"
+2. JSON-файлы можно просмотреть в любом текстовом редакторе
+3. TXT-файлы содержат логи проездов в читаемом формате
+
+ВНИМАНИЕ: Автоматическое восстановление всех данных
+не реализовано. Используйте этот бэкап для сохранения
+информации перед очисткой кэша.`;
+        }
+
+        async function handleFullBackupNoUser() {
+            addMessage('💾 Создание полного бэкапа...', 'system');
+            
+            const users = db.getUsers();
+            const zip = new JSZip();
+            const metadata = {
+                exportDate: new Date().toISOString(),
+                version: "1.0",
+                users: users,
+                totalLogs: 0
+            };
+            
+            // Создаем папку для каждого пользователя
+            for (const login of users) {
+                const userData = db.getUser(login);
+                const userFolder = zip.folder(`users/${login}`);
+                
+                // Сохраняем JSON-данные
+                userFolder.file('commands.json', JSON.stringify(userData.commands, null, 2));
+                userFolder.file('settings.json', JSON.stringify({
+                    theme: userData.settings.theme,
+                    coordinates: userData.coordinates,
+                    robot_history: userData.robot_history
+                }, null, 2));
+                
+                // Сохраняем архив логов в JSON
+                userFolder.file('archive.json', JSON.stringify(userData.logs_archive, null, 2));
+                
+                // Экспортируем каждый проезд в отдельный TXT
+                const logsFolder = userFolder.folder('logs_export');
+                userData.logs_archive.forEach((entry, idx) => {
+                    const footer = entry[entry.length - 1];
+                    const logs = entry.slice(0, -1);
+                    const content = formatLogsForExport(logs, footer[0], footer[1], footer[2], footer[3]);
+                    const filename = `proezd_${idx+1}_${footer[0]}_${footer[1]}_${footer[2].replace(/:/g,'-')}.txt`;
+                    logsFolder.file(filename, content);
+                    metadata.totalLogs++;
+                });
+            }
+            
+            // Добавляем метаданные и инструкцию
+            zip.file('metadata.json', JSON.stringify(metadata, null, 2));
+            zip.file('README.txt', generateReadme());
+            
+            // Генерируем и скачиваем архив
+            const blob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_${new Date().toISOString().slice(0,19).replace(/:/g,'-')}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            addMessage(`✅ Полный бэкап создан: ${metadata.totalLogs} проездов`, 'system');
+        }
+
+        function handleClearCacheNoUser() {
+            addMessage('⚠️ **ВНИМАНИЕ! Необратимое действие!**\n\n' +
+                      'Будут безвозвратно удалены:\n' +
+                      '• Все пользователи и их настройки\n' +
+                      '• Все сохраненные логи и архивы проездов\n' +
+                      '• Все пользовательские команды\n' +
+                      '• История роботов и маршрутов\n' +
+                      '• Координаты и настройки темы\n\n' +
+                      'Рекомендуется перед очисткой сделать экспорт данных.\n\n' +
+                      'Для подтверждения введите **DELETE** в поле ниже:', 'system');
+            
+            showInput('Введите DELETE для подтверждения...');
+            
+            // Временно устанавливаем состояние для подтверждения
+            if (currentUser) {
+                db.setUser(currentUser, 'state', 'confirm_clear_cache');
+            } else {
+                // Если нет пользователя, просто показываем кнопки
+                window.pendingClearCache = true;
+            }
+            
+            showKeyboard([
+                [
+                    { text: '✅ Подтвердить удаление', class: 'danger', callback: () => executeClearCacheNoUser() },
+                    { text: '❌ Отмена', callback: () => {
+                        hideInput();
+                        clearKeyboard();
+                        if (currentUser) {
+                            handleMainMenu();
+                        } else {
+                            addMessage('❌ Операция отменена', 'system');
+                        }
+                    }}
+                ]
+            ]);
+        }
+
+        function executeClearCacheNoUser() {
+            const input = document.getElementById('messageInput').value.trim();
+            if (input === 'DELETE') {
+                localStorage.clear();
+                addMessage('🗑️ Все данные удалены. Перезагрузка...', 'system');
+                setTimeout(() => location.reload(), 2000);
+            } else {
+                addMessage('❌ Неверное подтверждение. Операция отменена.', 'system');
+                hideInput();
+                clearKeyboard();
+            }
+        }
+
+        // ============================================
+        // УПРАВЛЕНИЕ КОМАНДАМИ (НАСТРОЙКИ)
         // ============================================
         function handleUserCommands() {
             if (!currentUser) return;
@@ -764,41 +999,74 @@
             const user = db.getUser(currentUser);
             const commands = user.commands;
             
-            let text = `⚙️ **Мои команды**\n\nВсего команд: ${commands.length}\n\n`;
-            commands.slice(0, 10).forEach((cmd, i) => {
-                text += `${i+1}. ${cmd.name}\n`;
+            let helpText = '⚙️ **Настройки**\n\n';
+            helpText += '• ➕ Добавить команду — создать новую кнопку.\n';
+            helpText += '• ✏️ Редактировать — изменить текст лога для команды.\n';
+            helpText += '• ❌ Удалить — удалить команду.\n';
+            helpText += '• 🔄 Сбросить — вернуть стандартный набор.\n';
+            helpText += '• 📤 Экспорт — сохранить команды в файл.\n';
+            helpText += '• 📥 Импорт — загрузить команды из файла.\n';
+            helpText += '• ◀️ Назад — вернуться в главное меню.\n\n';
+            helpText += '**Текущие команды:**\n';
+            
+            commands.forEach((cmd, i) => {
+                helpText += `${i+1}. ${cmd.name}\n`;
             });
             
-            addMessage(text, 'system');
+            addMessage(helpText, 'system');
             
             showKeyboard([
-                [{ text: '📋 Показать все', callback: () => handleUserList() }],
                 [{ text: '➕ Добавить команду', callback: () => handleUserAddStart() }],
                 [{ text: '✏️ Редактировать команду', callback: () => handleUserEditStart() }],
                 [{ text: '❌ Удалить команду', callback: () => handleUserDeleteStart() }],
                 [{ text: '🔄 Сбросить к стандартным', callback: () => handleUserReset() }],
+                [{ text: '📤 Экспорт команд', callback: () => exportCommands() }],
+                [{ text: '📥 Импорт команд', callback: () => importCommands() }],
                 [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
             ]);
             
             db.setUser(currentUser, 'state', 'commands_menu');
         }
 
-        function handleUserList() {
+        function exportCommands() {
             if (!currentUser) return;
-            
             const user = db.getUser(currentUser);
             const commands = user.commands;
-            
-            let text = '📋 **Все команды:**\n\n';
-            commands.forEach((cmd, i) => {
-                text += `${i+1}. **${cmd.name}**\n   → ${cmd.log_text}\n\n`;
-            });
-            
-            addMessage(text, 'system');
-            
-            showKeyboard([
-                [{ text: '◀️ Назад', callback: () => handleUserCommands() }]
-            ]);
+            const dataStr = JSON.stringify(commands, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `commands_${currentUser}_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addMessage('📤 Команды экспортированы', 'system');
+        }
+
+        function importCommands() {
+            const input = document.createElement('input');
+            input.type = 'file';
+            input.accept = '.json,application/json';
+            input.onchange = (event) => {
+                const file = event.target.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    try {
+                        const imported = JSON.parse(e.target.result);
+                        if (!Array.isArray(imported) || !imported.every(cmd => cmd.name && cmd.log_text)) {
+                            throw new Error('Неверный формат файла');
+                        }
+                        db.saveCommands(currentUser, imported);
+                        addMessage('✅ Команды успешно импортированы', 'system');
+                        handleUserCommands();
+                    } catch (err) {
+                        addMessage(`❌ Ошибка импорта: ${err.message}`, 'system');
+                    }
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
 
         function handleUserAddStart() {
@@ -1013,10 +1281,29 @@
             db.setUser(currentUser, 'robot_info', robotInfo);
             db.setUser(currentUser, 'robot_history', robotHistory);
             
-            // Сбрасываем счетчики для новой сессии
             db.resetCounters(currentUser);
             
             showLoggingScreen();
+        }
+
+        function formatLogEntry(entry) {
+            if (typeof entry === 'string') return entry;
+            if (entry && typeof entry === 'object') {
+                if (entry.type === 'coords') {
+                    return entry.text;
+                }
+                if (entry.type === 'address') {
+                    return entry.text;
+                }
+                return JSON.stringify(entry);
+            }
+            return String(entry);
+        }
+
+        function formatLogsForExport(logs, robot, route, startTime, endTime) {
+            const header = `Лог проезда\nРобот: ${robot}\nМаршрут: ${route}\nНачало: ${startTime}\nОкончание: ${endTime}\n\n`;
+            const body = logs.map(formatLogEntry).join('\n');
+            return header + body;
         }
 
         function showLoggingScreen() {
@@ -1025,18 +1312,16 @@
             const logs = user.logs || [];
             const commands = user.commands;
             
-            // Форматируем логи с кликабельными координатами
             let logsHTML = '';
             logs.slice(-15).forEach(log => {
                 if (typeof log === 'string') {
-                    // Старый формат (для совместимости)
                     logsHTML += `<br>${log}`;
                 } else if (log.type === 'coords' && log.link) {
-                    // Координаты - кликабельные, показываем только текст
                     logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.text}</span>`;
-                } else {
-                    // Адрес - показываем полный текст
+                } else if (log.type === 'address') {
                     logsHTML += `<br><span class="address-text">${log.text}</span>`;
+                } else {
+                    logsHTML += `<br>${JSON.stringify(log)}`;
                 }
             });
             
@@ -1044,7 +1329,6 @@
             
             addMessage(header + (logsHTML || '<br>(пока нет записей)'), 'system', true);
             
-            // Верхняя панель с фиксированными кнопками
             const buttons = [
                 [
                     { text: '❌ Закончить', class: 'danger', callback: () => handleStopRecording() },
@@ -1054,17 +1338,16 @@
                 ]
             ];
             
-            // Команды пользователя (по две в ряд)
             for (let i = 0; i < commands.length; i += 2) {
                 const row = [];
                 row.push({
-                    text: commands[i].name,
+                    text: `${i+1}. ${commands[i].name}`,
                     callback: () => handleAction(i)
                 });
                 
                 if (i + 1 < commands.length) {
                     row.push({
-                        text: commands[i+1].name,
+                        text: `${i+2}. ${commands[i+1].name}`,
                         callback: () => handleAction(i+1)
                     });
                 }
@@ -1084,7 +1367,6 @@
             const now = new Date();
             const timeStr = now.toLocaleTimeString();
             
-            // Сохраняем как простой текст (не объект)
             const logEntry = `${timeStr} ${command.log_text}`;
             
             const logs = [...user.logs, logEntry];
@@ -1113,7 +1395,6 @@
         function handlePasteCoordinates() {
             addMessage('🗺️ **Вставьте координаты** (любой формат):\n\n• Ссылка Яндекс.Карт\n• Числовые координаты (широта, долгота)\n• Текстовый адрес', 'system');
             
-            // Показываем специальную клавиатуру для режима ввода координат
             showKeyboard([
                 [
                     { text: '👁️ Посмотреть текущие координаты', callback: () => handleViewCoordinates() },
@@ -1128,7 +1409,6 @@
         function handleSaveCoordinates(input) {
             const logEntry = db.updateCoordinates(currentUser, input);
             
-            // Показываем сообщение
             if (logEntry.type === 'coords') {
                 addMessage(`✅ Координаты сохранены`, 'system');
             } else {
@@ -1143,7 +1423,6 @@
             const user = db.getUser(currentUser);
             const coords = user.coordinates;
             
-            // Открываем в новой вкладке
             window.open(coords.current, '_blank');
             addMessage(`👁️ Открыты координаты: ${coords.last_input}`, 'system');
         }
@@ -1156,14 +1435,25 @@
             const now = new Date();
             const currentTime = now.toLocaleTimeString();
             
-            const logFooter = [robotInfo[0], robotInfo[1], currentTime];
+            // Определяем время начала (первая запись или текущее время, если логов нет)
+            let startTime = currentTime;
+            if (logs.length > 0) {
+                const firstLog = logs[0];
+                if (typeof firstLog === 'string') {
+                    startTime = firstLog.split(' ')[0];
+                } else if (firstLog && firstLog.text) {
+                    startTime = firstLog.text.split(' ')[0];
+                }
+            }
+            
+            const logFooter = [robotInfo[0], robotInfo[1], startTime, currentTime];
             
             const archive = [...user.logs_archive];
             const archiveEntry = [...logs, logFooter];
             archive.unshift(archiveEntry);
             
-            if (archive.length > 10) {
-                archive.length = 10;
+            if (archive.length > MAX_ARCHIVE_SIZE) {
+                archive.length = MAX_ARCHIVE_SIZE;
             }
             
             db.setUser(currentUser, 'logs_archive', archive);
@@ -1180,18 +1470,42 @@
             
             if (archive.length === 0) {
                 addMessage('❌ Нет сохраненных проездов', 'error');
+                showKeyboard([
+                    [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
+                ]);
             } else {
                 const lastLog = archive[0];
-                const logsText = lastLog.slice(0, -1).join('\n');
+                const logsText = lastLog.slice(0, -1).map(formatLogEntry).join('\n');
                 const footer = lastLog[lastLog.length - 1];
                 
-                const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}** • ${footer[2]}\n\n`;
+                const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}**\n📅 ${footer[2]} — ${footer[3]}\n\n`;
                 addMessage(header + logsText, 'system');
+                
+                showKeyboard([
+                    [{ text: '📥 Экспорт в TXT', callback: () => exportLastLog() }],
+                    [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
+                ]);
             }
+        }
+
+        function exportLastLog() {
+            const user = db.getUser(currentUser);
+            const archive = user.logs_archive;
+            if (archive.length === 0) return;
             
-            showKeyboard([
-                [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
-            ]);
+            const lastLog = archive[0];
+            const logs = lastLog.slice(0, -1);
+            const footer = lastLog[lastLog.length - 1];
+            
+            const content = formatLogsForExport(logs, footer[0], footer[1], footer[2], footer[3]);
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `log_${footer[0]}_${footer[1]}_${footer[2].replace(/:/g,'-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addMessage('📥 Последний лог экспортирован', 'system');
         }
 
         function handleShowArchive() {
@@ -1206,36 +1520,149 @@
                 return;
             }
             
-            let text = '📑 **Архив проездов** (последние 10)\n\n';
+            let text = '📑 **Архив проездов**\n\n';
             const buttons = [];
             
             archive.forEach((entry, i) => {
                 const footer = entry[entry.length - 1];
-                text += `${i+1}. 🤖 ${footer[0]} • 🗺 ${footer[1]} • ${footer[2]}\n`;
+                const displayText = `🤖 ${footer[0]} • 🗺 ${footer[1]} • ${footer[2]} — ${footer[3]}`;
+                text += `${i+1}. ${displayText}\n`;
                 buttons.push([{
-                    text: `📄 Проезд ${i+1}`,
+                    text: `📄 ${displayText}`,
                     callback: () => handleViewArchiveItem(i)
                 }]);
             });
             
             addMessage(text, 'system');
+            buttons.push([{ text: '📦 Экспорт архива (ZIP)', callback: () => showArchiveExportSelection() }]);
             buttons.push([{ text: '◀️ Назад', callback: () => handleMainMenu() }]);
             showKeyboard(buttons);
+        }
+
+        function showArchiveExportSelection() {
+            const user = db.getUser(currentUser);
+            const archive = user.logs_archive;
+            
+            if (archive.length === 0) return;
+            
+            addMessage('📦 **Выберите проезды для экспорта** (по умолчанию все отмечены):', 'system');
+            
+            const container = document.createElement('div');
+            container.className = 'button-grid';
+            
+            const checkboxes = [];
+            
+            archive.forEach((entry, i) => {
+                const footer = entry[entry.length - 1];
+                const div = document.createElement('div');
+                div.className = 'checkbox-item';
+                
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.id = `export_${i}`;
+                checkbox.checked = true;
+                
+                const label = document.createElement('label');
+                label.htmlFor = `export_${i}`;
+                label.textContent = `${i+1}. 🤖 ${footer[0]} • 🗺 ${footer[1]} • ${footer[2]} — ${footer[3]}`;
+                
+                div.appendChild(checkbox);
+                div.appendChild(label);
+                container.appendChild(div);
+                
+                checkboxes.push(checkbox);
+            });
+            
+            const buttonRow = document.createElement('div');
+            buttonRow.className = 'button-row';
+            
+            const exportBtn = document.createElement('button');
+            exportBtn.textContent = '✅ Экспорт выбранных';
+            exportBtn.className = 'primary';
+            exportBtn.onclick = () => exportSelectedArchive(checkboxes);
+            
+            const cancelBtn = document.createElement('button');
+            cancelBtn.textContent = '❌ Отмена';
+            cancelBtn.onclick = () => handleShowArchive();
+            
+            buttonRow.appendChild(exportBtn);
+            buttonRow.appendChild(cancelBtn);
+            container.appendChild(buttonRow);
+            
+            document.getElementById('keyboardArea').innerHTML = '';
+            document.getElementById('keyboardArea').appendChild(container);
+        }
+
+        async function exportSelectedArchive(checkboxes) {
+            const user = db.getUser(currentUser);
+            const archive = user.logs_archive;
+            
+            const selectedIndices = [];
+            checkboxes.forEach((cb, idx) => {
+                if (cb.checked) selectedIndices.push(idx);
+            });
+            
+            if (selectedIndices.length === 0) {
+                addMessage('❌ Ничего не выбрано', 'system');
+                handleShowArchive();
+                return;
+            }
+            
+            const zip = new JSZip();
+            
+            selectedIndices.forEach(idx => {
+                const entry = archive[idx];
+                const logs = entry.slice(0, -1);
+                const footer = entry[entry.length - 1];
+                
+                const content = formatLogsForExport(logs, footer[0], footer[1], footer[2], footer[3]);
+                const filename = `log_${footer[0]}_${footer[1]}_${footer[2].replace(/:/g,'-')}.txt`;
+                zip.file(filename, content);
+            });
+            
+            const zipBlob = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(zipBlob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `archive_${currentUser}_${new Date().toISOString().slice(0,10)}.zip`;
+            a.click();
+            URL.revokeObjectURL(url);
+            
+            addMessage(`📦 Экспортировано проездов: ${selectedIndices.length}`, 'system');
+            handleShowArchive();
         }
 
         function handleViewArchiveItem(index) {
             const user = db.getUser(currentUser);
             const entry = user.logs_archive[index];
             
-            const logsText = entry.slice(0, -1).join('\n');
+            const logsText = entry.slice(0, -1).map(formatLogEntry).join('\n');
             const footer = entry[entry.length - 1];
             
-            const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}** • ${footer[2]}\n\n`;
+            const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}**\n📅 ${footer[2]} — ${footer[3]}\n\n`;
             addMessage('📄 **Архивный лог**\n\n' + header + logsText, 'system');
             
             showKeyboard([
+                [{ text: '📥 Экспорт в TXT', callback: () => exportArchiveItem(index) }],
                 [{ text: '◀️ Назад в архив', callback: () => handleShowArchive() }]
             ]);
+        }
+
+        function exportArchiveItem(index) {
+            const user = db.getUser(currentUser);
+            const entry = user.logs_archive[index];
+            const logs = entry.slice(0, -1);
+            const footer = entry[entry.length - 1];
+            
+            const content = formatLogsForExport(logs, footer[0], footer[1], footer[2], footer[3]);
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `log_${footer[0]}_${footer[1]}_${footer[2].replace(/:/g,'-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+            addMessage('📥 Лог экспортирован', 'system');
         }
 
         // ============================================
@@ -1269,7 +1696,6 @@
                 const now = new Date();
                 const timeStr = now.toLocaleTimeString();
                 
-                // Сохраняем как простой текст
                 const logs = [...user.logs, `${timeStr} ${text}`];
                 db.setUser(currentUser, 'logs', logs);
                 updateStats();
@@ -1280,6 +1706,8 @@
                 handleUserAddLog(text);
             } else if (state === 'user_edit_log') {
                 handleUserEditLog(text);
+            } else if (state === 'confirm_clear_cache') {
+                executeClearCacheNoUser();
             } else {
                 handleMainMenu();
             }
@@ -1297,14 +1725,12 @@
         window.onload = function() {
             loadUsers();
             
-            // Проверяем сохраненного пользователя
             const savedUser = db.getCurrentUser();
             if (savedUser && db.getUsers().includes(savedUser)) {
                 document.getElementById('userSelect').value = savedUser;
                 switchUser();
             }
             
-            // Добавляем тестовых пользователей если никого нет
             if (db.getUsers().length === 0) {
                 db.createUser('Оператор_1');
                 db.createUser('Оператор_2');
@@ -1312,5 +1738,6 @@
             }
         };
     </script>
+
 </body>
 </html>
