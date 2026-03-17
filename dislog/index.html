@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
     <title>Логгер для роботов</title>
     <style>
         * {
@@ -12,12 +12,35 @@
             transition: background-color 0.3s, color 0.2s;
         }
         
-        body {
+        html, body {
+            height: 100%;
+            width: 100%;
+            overflow: hidden;
+            position: fixed;
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            padding: 20px;
+        }
+        
+        body {
+            padding: 1vh 1vw;
             min-height: 100vh;
             display: flex;
             justify-content: center;
+            background: #1a1a1a;
+        }
+        
+        /* Адаптивные размеры через vh/vw и проценты */
+        :root {
+            --header-height: 8vh;
+            --selector-height: 7vh;
+            --input-height: 7vh;
+            --keyboard-max-height: 30vh;
+            --stats-height: 4vh;
+            --global-actions-height: 7vh;
+            --spacing: 1vh;
+            --border-radius: 2vw;
+            --font-size-large: min(3.5vh, 5vw);
+            --font-size-medium: min(2.5vh, 4vw);
+            --font-size-small: min(2vh, 3.5vw);
         }
         
         /* Темная тема (по умолчанию) */
@@ -109,73 +132,88 @@
         }
         
         .container {
-            max-width: 800px;
             width: 100%;
-            border-radius: 12px;
+            height: 98vh;
+            max-width: 800px;
+            border-radius: var(--border-radius);
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 90vh;
+            background: #2d2d2d;
+            position: relative;
         }
         
         .header {
-            padding: 20px;
+            padding: var(--spacing) min(3vw, 20px);
+            height: var(--header-height);
+            min-height: var(--header-height);
             border-bottom: 1px solid;
             flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
         }
         
         .header h1 {
-            font-size: 1.5em;
+            font-size: var(--font-size-large);
+            line-height: 1.2;
         }
         
         .header .user-info {
-            margin-top: 10px;
-            font-size: 0.9em;
+            font-size: var(--font-size-small);
             opacity: 0.8;
+            margin-top: 0.2vh;
         }
         
         .user-selector {
-            padding: 10px 20px;
+            padding: var(--spacing) min(3vw, 20px);
+            height: var(--selector-height);
+            min-height: var(--selector-height);
             display: flex;
-            gap: 10px;
+            gap: 1vw;
             align-items: center;
             border-bottom: 1px solid;
-            flex-wrap: wrap;
             flex-shrink: 0;
         }
         
         .user-selector select {
-            flex: 1;
-            min-width: 200px;
-            padding: 8px;
+            flex: 2;
+            height: 70%;
+            padding: 0 2vw;
             border: 1px solid;
-            border-radius: 4px;
+            border-radius: 1vw;
             background: inherit;
             color: inherit;
+            font-size: var(--font-size-medium);
         }
         
         .user-selector button {
-            padding: 8px 16px;
+            flex: 1;
+            height: 70%;
+            padding: 0 1vw;
             border: none;
-            border-radius: 4px;
+            border-radius: 1vw;
             cursor: pointer;
             background: #4CAF50;
             color: white;
             white-space: nowrap;
+            font-size: var(--font-size-small);
         }
         
         .content {
-            padding: 20px;
-            flex: 1;
+            flex: 1 1 auto;
             overflow-y: auto;
-            min-height: 0;
+            padding: var(--spacing) min(3vw, 20px);
+            min-height: 20vh;
+            -webkit-overflow-scrolling: touch;
         }
         
         .message {
-            border-radius: 8px;
-            padding: 15px;
-            margin-bottom: 15px;
-            border-left: 3px solid #4CAF50;
+            border-radius: 1.5vw;
+            padding: min(1.5vh, 15px) min(2vw, 15px);
+            margin-bottom: var(--spacing);
+            border-left: 0.5vw solid #4CAF50;
+            font-size: var(--font-size-medium);
         }
         
         .message.system {
@@ -183,46 +221,49 @@
         }
         
         .message .time {
-            font-size: 0.8em;
+            font-size: var(--font-size-small);
             opacity: 0.6;
-            margin-bottom: 5px;
+            margin-bottom: 0.5vh;
         }
         
         .message .text {
-            line-height: 1.5;
+            line-height: 1.4;
             white-space: pre-wrap;
             word-break: break-word;
         }
         
         .keyboard {
-            padding: 20px;
-            border-top: 1px solid;
-            max-height: 300px;
-            overflow-y: auto;
             flex-shrink: 0;
+            max-height: var(--keyboard-max-height);
+            overflow-y: auto;
+            padding: var(--spacing) min(3vw, 20px);
+            border-top: 1px solid;
+            -webkit-overflow-scrolling: touch;
         }
         
         .button-grid {
             display: flex;
             flex-direction: column;
-            gap: 10px;
+            gap: var(--spacing);
         }
         
         .button-row {
             display: flex;
-            gap: 10px;
+            gap: 1vw;
             flex-wrap: wrap;
         }
         
         .button-row button {
-            flex: 1;
-            min-width: 150px;
-            padding: 12px;
+            flex: 1 1 calc(50% - 1vw);
+            min-width: 40%;
+            padding: min(1.5vh, 12px) min(2vw, 12px);
             border: none;
-            border-radius: 6px;
+            border-radius: 1.5vw;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: var(--font-size-medium);
             word-break: break-word;
+            white-space: normal;
+            line-height: 1.2;
         }
         
         .button-row button.primary {
@@ -234,22 +275,27 @@
         }
         
         .input-area {
-            padding: 20px;
-            border-top: 1px solid;
             flex-shrink: 0;
+            padding: var(--spacing) min(3vw, 20px);
+            border-top: 1px solid;
+            background: inherit;
         }
         
         .input-group {
             display: flex;
-            gap: 10px;
+            gap: 1vw;
+            height: 100%;
         }
         
         .input-group input {
             flex: 1;
-            padding: 12px;
+            height: var(--input-height);
+            padding: 0 min(2vw, 12px);
             border: 1px solid;
-            border-radius: 6px;
-            font-size: 1em;
+            border-radius: 1.5vw;
+            font-size: var(--font-size-medium);
+            background: inherit;
+            color: inherit;
         }
         
         .input-group input:focus {
@@ -258,44 +304,51 @@
         }
         
         .input-group button {
-            padding: 12px 24px;
+            height: var(--input-height);
+            padding: 0 min(3vw, 24px);
             border: none;
-            border-radius: 6px;
+            border-radius: 1.5vw;
             background: #4CAF50;
             color: white;
             cursor: pointer;
-            font-size: 1em;
-        }
-        
-        .input-group button:hover {
-            background: #45a049;
+            font-size: var(--font-size-medium);
+            white-space: nowrap;
         }
         
         .stats {
-            padding: 10px 20px;
-            font-size: 0.8em;
+            flex-shrink: 0;
+            height: var(--stats-height);
+            min-height: var(--stats-height);
+            padding: 0 min(3vw, 20px);
+            font-size: var(--font-size-small);
             opacity: 0.6;
             text-align: center;
             border-top: 1px solid;
-            flex-shrink: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
 
         .global-actions {
-            padding: 10px 20px 20px 20px;
-            display: flex;
-            gap: 10px;
-            border-top: 1px solid;
             flex-shrink: 0;
+            height: var(--global-actions-height);
+            min-height: var(--global-actions-height);
+            padding: var(--spacing) min(3vw, 20px);
+            display: flex;
+            gap: 1vw;
+            border-top: 1px solid;
         }
         
         .global-actions button {
             flex: 1;
-            padding: 12px;
+            height: 100%;
+            padding: 0 min(1vw, 12px);
             border: none;
-            border-radius: 6px;
+            border-radius: 1.5vw;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: var(--font-size-medium);
             font-weight: 500;
+            white-space: nowrap;
         }
         
         .global-actions button.primary {
@@ -329,61 +382,124 @@
             font-weight: bold;
         }
 
-        /* Мобильная адаптация */
-        @media (max-width: 600px) {
-            body {
-                padding: 10px;
-            }
-            .header h1 {
-                font-size: 1.2em;
-            }
-            .user-selector {
-                flex-direction: column;
-                align-items: stretch;
-            }
-            .user-selector select {
-                width: 100%;
-            }
-            .user-selector button {
-                width: 100%;
-            }
-            .button-row button {
-                min-width: 100%;
-            }
-            .input-group {
-                flex-direction: column;
-            }
-            .input-group button {
-                width: 100%;
-            }
-            .global-actions {
-                flex-direction: column;
-            }
-        }
-
-        /* Стили для чекбоксов в режиме выбора */
         .checkbox-item {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 8px;
+            gap: 1vw;
+            padding: min(1vh, 8px);
             background: inherit;
             border: 1px solid;
-            border-radius: 4px;
-            margin-bottom: 5px;
+            border-radius: 1vw;
+            margin-bottom: 0.5vh;
         }
+        
         .checkbox-item input[type="checkbox"] {
-            width: 20px;
-            height: 20px;
+            width: min(4vh, 20px);
+            height: min(4vh, 20px);
             cursor: pointer;
         }
+        
         .checkbox-item label {
             flex: 1;
             cursor: pointer;
-            font-size: 0.9em;
+            font-size: var(--font-size-small);
             white-space: nowrap;
             overflow: hidden;
             text-overflow: ellipsis;
+        }
+
+        /* Специальные стили для мобильных устройств */
+        @media (max-width: 600px) {
+            :root {
+                --header-height: 7vh;
+                --selector-height: 8vh;
+                --input-height: 6vh;
+                --keyboard-max-height: 35vh;
+                --stats-height: 4vh;
+                --global-actions-height: 7vh;
+                --spacing: 0.8vh;
+                --border-radius: 3vw;
+                --font-size-large: min(4vh, 6vw);
+                --font-size-medium: min(3vh, 4.5vw);
+                --font-size-small: min(2.5vh, 3.5vw);
+            }
+            
+            body {
+                padding: 0;
+            }
+            
+            .container {
+                height: 100vh;
+                width: 100vw;
+                max-width: none;
+                border-radius: 0;
+            }
+            
+            .button-row button {
+                flex: 1 1 100%;
+                min-width: 100%;
+                padding: 1.5vh min(3vw, 15px);
+            }
+            
+            .user-selector {
+                flex-wrap: wrap;
+                height: auto;
+                min-height: auto;
+                padding: 1vh min(3vw, 15px);
+            }
+            
+            .user-selector select,
+            .user-selector button {
+                height: 5vh;
+                font-size: var(--font-size-medium);
+            }
+            
+            .global-actions {
+                height: auto;
+                min-height: auto;
+                padding: 1vh min(3vw, 15px);
+            }
+            
+            .global-actions button {
+                height: 6vh;
+                font-size: var(--font-size-medium);
+                white-space: normal;
+                padding: 0 2vw;
+            }
+            
+            .input-group {
+                flex-direction: row;
+            }
+            
+            .input-group button {
+                padding: 0 4vw;
+            }
+            
+            .keyboard {
+                max-height: 40vh;
+            }
+        }
+
+        /* Адаптация при открытой клавиатуре на мобильных */
+        @media (max-width: 600px) and (max-height: 500px) {
+            :root {
+                --header-height: 10vh;
+                --keyboard-max-height: 30vh;
+                --input-height: 8vh;
+            }
+            
+            .header h1 {
+                font-size: var(--font-size-medium);
+            }
+            
+            .message {
+                padding: 0.8vh 2vw;
+                margin-bottom: 0.5vh;
+            }
+            
+            .button-row button {
+                padding: 1vh 2vw;
+            }
         }
     </style>
 </head>
@@ -398,7 +514,7 @@
             <select id="userSelect">
                 <option value="">Выберите пользователя...</option>
             </select>
-            <button onclick="addNewUser()">➕ Новый пользователь</button>
+            <button onclick="addNewUser()">➕ Новый</button>
             <button onclick="switchUser()">🔑 Войти</button>
         </div>
         
@@ -412,7 +528,7 @@
         <div class="input-area hidden" id="inputArea">
             <div class="input-group">
                 <input type="text" id="messageInput" placeholder="Введите сообщение..." onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Отправить</button>
+                <button onclick="sendMessage()">Отпр</button>
             </div>
         </div>
         
@@ -420,10 +536,9 @@
         
         <div class="stats" id="stats"></div>
 
-        <!-- Глобальные действия (только для начального экрана) -->
         <div class="global-actions" id="globalActions">
-            <button class="primary" onclick="handleFullBackupNoUser()">💾 Экспорт всех данных</button>
-            <button class="danger" onclick="handleClearCacheNoUser()">🗑️ Очистка кэша</button>
+            <button class="primary" onclick="handleFullBackupNoUser()">💾 Экспорт</button>
+            <button class="danger" onclick="handleClearCacheNoUser()">🗑️ Очистка</button>
         </div>
     </div>
 
@@ -679,6 +794,58 @@
         // ============================================
         const db = new LocalDB();
         let currentUser = null;
+        let keyboardVisible = false;
+
+        // ============================================
+        // ФУНКЦИИ ДЛЯ РАБОТЫ С КЛАВИАТУРОЙ
+        // ============================================
+        function handleKeyboardShow() {
+            keyboardVisible = true;
+            document.body.classList.add('keyboard-open');
+            
+            // Прокручиваем контент вниз при появлении клавиатуры
+            setTimeout(() => {
+                const content = document.getElementById('chatContent');
+                if (content) {
+                    content.scrollTop = content.scrollHeight;
+                }
+            }, 300);
+        }
+
+        function handleKeyboardHide() {
+            keyboardVisible = false;
+            document.body.classList.remove('keyboard-open');
+        }
+
+        // Переопределяем фокус на input для мобильных устройств
+        function setupMobileKeyboardHandling() {
+            const messageInput = document.getElementById('messageInput');
+            
+            messageInput.addEventListener('focus', () => {
+                handleKeyboardShow();
+            });
+            
+            messageInput.addEventListener('blur', () => {
+                handleKeyboardHide();
+            });
+            
+            // Обработка сворачивания клавиатуры по нажатию Done/Готово
+            messageInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter' && !e.shiftKey) {
+                    e.preventDefault();
+                    sendMessage();
+                }
+            });
+            
+            // Отслеживание изменения размера окна (клавиатура влияет на высоту)
+            window.addEventListener('resize', () => {
+                if (window.innerHeight < 500) {
+                    document.body.classList.add('keyboard-visible');
+                } else {
+                    document.body.classList.remove('keyboard-visible');
+                }
+            });
+        }
 
         // ============================================
         // ФУНКЦИИ ИНТЕРФЕЙСА
@@ -737,13 +904,21 @@
         }
 
         function showInput(placeholder = 'Введите сообщение...') {
-            document.getElementById('inputArea').classList.remove('hidden');
-            document.getElementById('messageInput').placeholder = placeholder;
-            document.getElementById('messageInput').focus();
+            const inputArea = document.getElementById('inputArea');
+            inputArea.classList.remove('hidden');
+            const messageInput = document.getElementById('messageInput');
+            messageInput.placeholder = placeholder;
+            
+            // Задержка для корректного открытия клавиатуры на мобильных
+            setTimeout(() => {
+                messageInput.focus();
+            }, 100);
         }
 
         function hideInput() {
-            document.getElementById('inputArea').classList.add('hidden');
+            const inputArea = document.getElementById('inputArea');
+            inputArea.classList.add('hidden');
+            document.getElementById('messageInput').blur();
         }
 
         function updateUserInfo() {
@@ -857,7 +1032,7 @@
                 [{ text: '📄 Последний лог', callback: () => handleShowLastLog() }],
                 [{ text: '📑 Архив логов', callback: () => handleShowArchive() }],
                 [{ text: '⚙️ Настройки', callback: () => handleUserCommands() }],
-                [{ text: '🌓 Переключить тему', callback: () => handleToggleTheme() }],
+                [{ text: '🌓 Тема', callback: () => handleToggleTheme() }],
                 [{ text: '🚪 Выйти', callback: () => logout() }]
             ]);
             
@@ -1332,11 +1507,10 @@
             const commands = user.commands;
             
             let logsHTML = '';
-            logs.slice(-15).forEach(log => {
+            logs.forEach(log => {
                 if (typeof log === 'string') {
                     logsHTML += `<br>${log}`;
                 } else if (log.type === 'coords' && log.link) {
-                    // В текущей сессии показываем только короткое название как ссылку
                     logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.shortText || log.text.split('     ')[0]}</span>`;
                 } else if (log.type === 'address') {
                     logsHTML += `<br><span class="address-text">${log.text}</span>`;
@@ -1353,8 +1527,8 @@
                 [
                     { text: '❌ Закончить', class: 'danger', callback: () => handleStopRecording() },
                     { text: '❌ Удалить последнюю', class: 'danger', callback: () => handleDeleteLastLog() },
-                    { text: '🗺️ Вставить координаты', class: 'primary', callback: () => handlePasteCoordinates() },
-                    { text: '👁️ Посмотреть координаты', callback: () => handleViewCoordinates() }
+                    { text: '🗺️ Координаты', class: 'primary', callback: () => handlePasteCoordinates() },
+                    { text: '👁️ Открыть', callback: () => handleViewCoordinates() }
                 ]
             ];
             
@@ -1729,10 +1903,16 @@
             } else {
                 handleMainMenu();
             }
+            
+            // Скрываем клавиатуру после отправки на мобильных устройствах
+            if (window.innerWidth <= 600) {
+                input.blur();
+            }
         }
 
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
+                event.preventDefault();
                 sendMessage();
             }
         }
@@ -1758,6 +1938,9 @@
                 db.createUser('Оператор_2');
                 loadUsers();
             }
+            
+            // Настраиваем обработку мобильной клавиатуры
+            setupMobileKeyboardHandling();
         };
     </script>
 </body>
