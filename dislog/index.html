@@ -113,11 +113,15 @@
             width: 100%;
             border-radius: 12px;
             overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
         }
         
         .header {
             padding: 20px;
             border-bottom: 1px solid;
+            flex-shrink: 0;
         }
         
         .header h1 {
@@ -137,6 +141,7 @@
             align-items: center;
             border-bottom: 1px solid;
             flex-wrap: wrap;
+            flex-shrink: 0;
         }
         
         .user-selector select {
@@ -149,12 +154,6 @@
             color: inherit;
         }
         
-        .user-selector .action-buttons {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-        
         .user-selector button {
             padding: 8px 16px;
             border: none;
@@ -165,19 +164,11 @@
             white-space: nowrap;
         }
         
-        .user-selector button.danger {
-            background: #f44336;
-        }
-        
-        .user-selector button.primary {
-            background: #4CAF50;
-        }
-        
         .content {
             padding: 20px;
-            min-height: 400px;
-            max-height: 500px;
+            flex: 1;
             overflow-y: auto;
+            min-height: 0;
         }
         
         .message {
@@ -206,6 +197,9 @@
         .keyboard {
             padding: 20px;
             border-top: 1px solid;
+            max-height: 300px;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
         
         .button-grid {
@@ -242,6 +236,7 @@
         .input-area {
             padding: 20px;
             border-top: 1px solid;
+            flex-shrink: 0;
         }
         
         .input-group {
@@ -282,10 +277,39 @@
             opacity: 0.6;
             text-align: center;
             border-top: 1px solid;
+            flex-shrink: 0;
+        }
+
+        .global-actions {
+            padding: 10px 20px 20px 20px;
+            display: flex;
+            gap: 10px;
+            border-top: 1px solid;
+            flex-shrink: 0;
+        }
+        
+        .global-actions button {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9em;
+            font-weight: 500;
+        }
+        
+        .global-actions button.primary {
+            background: #4CAF50;
+            color: white;
+        }
+        
+        .global-actions button.danger {
+            background: #f44336;
+            color: white;
         }
         
         .hidden {
-            display: none;
+            display: none !important;
         }
         
         .coords-link {
@@ -320,11 +344,8 @@
             .user-selector select {
                 width: 100%;
             }
-            .user-selector .action-buttons {
-                width: 100%;
-            }
             .user-selector button {
-                flex: 1;
+                width: 100%;
             }
             .button-row button {
                 min-width: 100%;
@@ -335,8 +356,8 @@
             .input-group button {
                 width: 100%;
             }
-            .content {
-                max-height: 350px;
+            .global-actions {
+                flex-direction: column;
             }
         }
 
@@ -364,55 +385,21 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        .global-actions {
-            padding: 5px 10px 10px 10px;
- 	    display: flex;
-            gap: 5px;
-            border-bottom: 1px solid;
-            flex-shrink: 0;
-        }
-        
-        .global-actions button {
-            flex: 1;
-            padding: 4px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 0.7em;
-            font-weight: 500;
-        }
-        
-        .global-actions button.primary {
-            background: #afad4c;
-            color: white;
-        }
-        
-        .global-actions button.danger {
-            background: #f44336;
-            color: white;
-        }
     </style>
 </head>
 <body class="dark-theme">
     <div class="container">
         <div class="header">
-<div class="global-actions" id="globalActions">
-            <button class="primary" onclick="handleFullBackupNoUser()">💾 Экспорт всех данных</button>
-            <button class="danger" onclick="handleClearCacheNoUser()">🗑️ Очистка кэша</button>
-        </div>
             <h1>🤖 Логгер для роботов</h1>
             <div class="user-info" id="userInfo"></div>
         </div>
         
-        <div class="user-selector">
+        <div class="user-selector" id="userSelector">
             <select id="userSelect">
                 <option value="">Выберите пользователя...</option>
             </select>
-            <div class="action-buttons">
-                <button onclick="addNewUser()">➕ Новый</button>
-                <button onclick="switchUser()">🔑 Войти</button>
- 
-            </div>
+            <button onclick="addNewUser()">➕ Новый пользователь</button>
+            <button onclick="switchUser()">🔑 Войти</button>
         </div>
         
         <div class="content" id="chatContent">
@@ -433,6 +420,11 @@
         
         <div class="stats" id="stats"></div>
 
+        <!-- Глобальные действия (только для начального экрана) -->
+        <div class="global-actions" id="globalActions">
+            <button class="primary" onclick="handleFullBackupNoUser()">💾 Экспорт всех данных</button>
+            <button class="danger" onclick="handleClearCacheNoUser()">🗑️ Очистка кэша</button>
+        </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
@@ -634,14 +626,19 @@
                 if (parsed.type === 'coords') {
                     const linkToSave = parsed.fullLink || DEFAULT_COORDS_LINK;
                     coords.current = linkToSave;
-                    coords.last_input = parsed.lon && parsed.lat ? `${parsed.lat}, ${parsed.lon}` : input;
+                    
+                    // Формируем текст для архива: Координаты_Х     ссылка     широта,долгота
+                    const coordNumber = coords.coord_counter;
+                    const coordText = parsed.lon && parsed.lat ? `${parsed.lat}, ${parsed.lon}` : '';
                     
                     logEntry = {
-                        text: `${timeStr} Координаты_${coords.coord_counter}`,
+                        text: `${timeStr} Координаты_${coordNumber}     ${linkToSave}     ${coordText}`,
                         link: linkToSave,
+                        shortText: `Координаты_${coordNumber}`, // для отображения в текущей сессии
                         type: 'coords'
                     };
                     coords.coord_counter += 1;
+                    coords.last_input = coordText;
                 } else {
                     logEntry = {
                         text: `${timeStr} Адрес_${coords.address_counter}: ${input}`,
@@ -822,11 +819,29 @@
                 clearKeyboard();
                 hideInput();
                 
+                // Скрываем панель выбора пользователя и глобальные действия
+                document.getElementById('userSelector').classList.add('hidden');
+                document.getElementById('globalActions').classList.add('hidden');
+                
                 document.getElementById('chatContent').innerHTML = '';
                 
                 addMessage(`👋 Добро пожаловать, ${login}!`, 'system');
                 handleMainMenu();
             }
+        }
+
+        function logout() {
+            currentUser = null;
+            db.setCurrentUser(null);
+            document.getElementById('userSelector').classList.remove('hidden');
+            document.getElementById('globalActions').classList.remove('hidden');
+            document.getElementById('userSelect').value = '';
+            clearKeyboard();
+            hideInput();
+            document.getElementById('chatContent').innerHTML = '';
+            addMessage('👋 Вы вышли. Выберите пользователя для входа.', 'system');
+            updateUserInfo();
+            updateStats();
         }
 
         // ============================================
@@ -842,7 +857,8 @@
                 [{ text: '📄 Последний лог', callback: () => handleShowLastLog() }],
                 [{ text: '📑 Архив логов', callback: () => handleShowArchive() }],
                 [{ text: '⚙️ Настройки', callback: () => handleUserCommands() }],
-                [{ text: '🌓 Переключить тему', callback: () => handleToggleTheme() }]
+                [{ text: '🌓 Переключить тему', callback: () => handleToggleTheme() }],
+                [{ text: '🚪 Выйти', callback: () => logout() }]
             ]);
             
             hideInput();
@@ -953,13 +969,8 @@
             
             showInput('Введите DELETE для подтверждения...');
             
-            // Временно устанавливаем состояние для подтверждения
-            if (currentUser) {
-                db.setUser(currentUser, 'state', 'confirm_clear_cache');
-            } else {
-                // Если нет пользователя, просто показываем кнопки
-                window.pendingClearCache = true;
-            }
+            // Скрываем глобальные кнопки на время подтверждения
+            document.getElementById('globalActions').classList.add('hidden');
             
             showKeyboard([
                 [
@@ -967,11 +978,8 @@
                     { text: '❌ Отмена', callback: () => {
                         hideInput();
                         clearKeyboard();
-                        if (currentUser) {
-                            handleMainMenu();
-                        } else {
-                            addMessage('❌ Операция отменена', 'system');
-                        }
+                        // Показываем глобальные кнопки обратно
+                        document.getElementById('globalActions').classList.remove('hidden');
                     }}
                 ]
             ]);
@@ -987,7 +995,32 @@
                 addMessage('❌ Неверное подтверждение. Операция отменена.', 'system');
                 hideInput();
                 clearKeyboard();
+                // Показываем глобальные кнопки обратно
+                document.getElementById('globalActions').classList.remove('hidden');
             }
+        }
+
+        // ============================================
+        // ФОРМАТИРОВАНИЕ ЛОГОВ ДЛЯ ОТОБРАЖЕНИЯ
+        // ============================================
+        function formatLogEntry(entry) {
+            if (typeof entry === 'string') return entry;
+            if (entry && typeof entry === 'object') {
+                if (entry.type === 'coords') {
+                    return entry.text; // В архиве показываем полную строку с ссылкой и координатами
+                }
+                if (entry.type === 'address') {
+                    return entry.text;
+                }
+                return JSON.stringify(entry);
+            }
+            return String(entry);
+        }
+
+        function formatLogsForExport(logs, robot, route, startTime, endTime) {
+            const header = `Лог проезда\nРобот: ${robot}\nМаршрут: ${route}\nНачало: ${startTime}\nОкончание: ${endTime}\n\n`;
+            const body = logs.map(formatLogEntry).join('\n');
+            return header + body;
         }
 
         // ============================================
@@ -1006,6 +1039,8 @@
             helpText += '• 🔄 Сбросить — вернуть стандартный набор.\n';
             helpText += '• 📤 Экспорт — сохранить команды в файл.\n';
             helpText += '• 📥 Импорт — загрузить команды из файла.\n';
+            helpText += '• 💾 Экспорт всех данных — полный бэкап всех пользователей.\n';
+            helpText += '• 🗑️ Очистка кэша — удаление всех данных (необратимо).\n';
             helpText += '• ◀️ Назад — вернуться в главное меню.\n\n';
             helpText += '**Текущие команды:**\n';
             
@@ -1022,6 +1057,10 @@
                 [{ text: '🔄 Сбросить к стандартным', callback: () => handleUserReset() }],
                 [{ text: '📤 Экспорт команд', callback: () => exportCommands() }],
                 [{ text: '📥 Импорт команд', callback: () => importCommands() }],
+                [
+                    { text: '💾 Экспорт всех данных', callback: () => handleFullBackupNoUser() },
+                    { text: '🗑️ Очистка кэша', class: 'danger', callback: () => handleClearCacheNoUser() }
+                ],
                 [{ text: '◀️ Назад', callback: () => handleMainMenu() }]
             ]);
             
@@ -1286,26 +1325,6 @@
             showLoggingScreen();
         }
 
-        function formatLogEntry(entry) {
-            if (typeof entry === 'string') return entry;
-            if (entry && typeof entry === 'object') {
-                if (entry.type === 'coords') {
-                    return entry.text;
-                }
-                if (entry.type === 'address') {
-                    return entry.text;
-                }
-                return JSON.stringify(entry);
-            }
-            return String(entry);
-        }
-
-        function formatLogsForExport(logs, robot, route, startTime, endTime) {
-            const header = `Лог проезда\nРобот: ${robot}\nМаршрут: ${route}\nНачало: ${startTime}\nОкончание: ${endTime}\n\n`;
-            const body = logs.map(formatLogEntry).join('\n');
-            return header + body;
-        }
-
         function showLoggingScreen() {
             const user = db.getUser(currentUser);
             const robotInfo = user.robot_info;
@@ -1317,7 +1336,8 @@
                 if (typeof log === 'string') {
                     logsHTML += `<br>${log}`;
                 } else if (log.type === 'coords' && log.link) {
-                    logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.text}</span>`;
+                    // В текущей сессии показываем только короткое название как ссылку
+                    logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.shortText || log.text.split('     ')[0]}</span>`;
                 } else if (log.type === 'address') {
                     logsHTML += `<br><span class="address-text">${log.text}</span>`;
                 } else {
@@ -1706,8 +1726,6 @@
                 handleUserAddLog(text);
             } else if (state === 'user_edit_log') {
                 handleUserEditLog(text);
-            } else if (state === 'confirm_clear_cache') {
-                executeClearCacheNoUser();
             } else {
                 handleMainMenu();
             }
@@ -1729,6 +1747,10 @@
             if (savedUser && db.getUsers().includes(savedUser)) {
                 document.getElementById('userSelect').value = savedUser;
                 switchUser();
+            } else {
+                // Показываем глобальные действия на начальном экране
+                document.getElementById('globalActions').classList.remove('hidden');
+                document.getElementById('userSelector').classList.remove('hidden');
             }
             
             if (db.getUsers().length === 0) {
@@ -1738,6 +1760,5 @@
             }
         };
     </script>
-
 </body>
 </html>
