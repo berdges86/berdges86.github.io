@@ -3,9 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes, viewport-fit=cover">
-    <title>Логгер для роботов — перетаскивание кнопок + разделитель</title>
+    <title>Логгер для роботов</title>
     <style>
-        /* Стили полностью сохранены из предыдущей версии */
         * {
             margin: 0;
             padding: 0;
@@ -661,6 +660,7 @@
             background: #2196F3 !important;
             color: white !important;
         }
+        /* Заговор на понос, если не вздумаете поблагодарить автора в мыслях */
     </style>
 </head>
 <body class="dark-theme">
@@ -720,14 +720,44 @@
             let minutes = date.getMinutes().toString().padStart(2, '0');
             return `${hours}:${minutes}`;
         }
-        
+
+        function formatTimeWithSeconds(date) {
+            let hours = date.getHours().toString().padStart(2, '0');
+            let minutes = date.getMinutes().toString().padStart(2, '0');
+            let seconds = date.getSeconds().toString().padStart(2, '0');
+            return `${hours}:${minutes}:${seconds}`;
+        }
+
+        function formatTimeForLog(date, includeSeconds = false) {
+            return includeSeconds ? formatTimeWithSeconds(date) : formatTimeWithoutSeconds(date);
+        }
+
+        function normalizeTimeString(timeStr) {
+            if (!timeStr) return null;
+            const match = String(timeStr).trim().match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+            if (!match) return null;
+            return {
+                hours: Number(match[1]),
+                minutes: Number(match[2]),
+                seconds: Number(match[3] || 0),
+                hasSeconds: Boolean(match[3])
+            };
+        }
+
+        function stripSecondsFromTimeString(timeStr) {
+            const parsed = normalizeTimeString(timeStr);
+            if (!parsed) return timeStr || '';
+            return `${String(parsed.hours).padStart(2, '0')}:${String(parsed.minutes).padStart(2, '0')}`;
+        }
+
         function computeDuration(startTimeStr, endTimeStr) {
-            let [startH, startM] = startTimeStr.split(':').map(Number);
-            let [endH, endM] = endTimeStr.split(':').map(Number);
-            let startTotal = startH * 60 + startM;
-            let endTotal = endH * 60 + endM;
+            const start = normalizeTimeString(startTimeStr);
+            const end = normalizeTimeString(endTimeStr);
+            if (!start || !end) return "0мин";
+            let startTotal = start.hours * 60 + start.minutes;
+            let endTotal = end.hours * 60 + end.minutes;
             let diff = endTotal - startTotal;
-            if (diff < 0) diff += 24*60;
+            if (diff < 0) diff += 24 * 60;
             let hours = Math.floor(diff / 60);
             let minutes = diff % 60;
             if (hours === 0 && minutes === 0) return "0мин";
@@ -735,8 +765,268 @@
             if (minutes === 0) return `${hours}ч`;
             return `${hours}ч${minutes}мин`;
         }
-        
+
+        function getLogEntryText(logEntry) {
+            if (typeof logEntry === 'string') return logEntry;
+            if (logEntry && typeof logEntry === 'object' && logEntry.text) return logEntry.text;
+            return '';
+        }
+
+        function extractTimePrefix(logEntry) {
+            const text = getLogEntryText(logEntry);
+            const match = text.match(/^(\d{1,2}:\d{2}(?::\d{2})?)\s+/);
+            return match ? match[1] : null;
+        }
+
+        function isRouteStartLog(logEntry) {
+            return getLogEntryText(logEntry).includes('Начало маршрута');
+        }
+
+        function recalculateCurrentStartTimeFromLogs(logs) {
+            for (let i = logs.length - 1; i >= 0; i--) {
+                const log = logs[i];
+                if (isRouteStartLog(log)) {
+                    const time = extractTimePrefix(log);
+                    if (time) return time;
+                }
+            }
+            return null;
+        }
+
+        function ensureUserSettings(user) {
+            if (!user.settings) user.settings = {};
+            if (typeof user.settings.theme !== 'string') user.settings.theme = 'dark';
+            if (typeof user.settings.showSecondsInLogs !== 'boolean') user.settings.showSecondsInLogs = false;
+            if (typeof user.settings.autoBackupInterval !== 'number') user.settings.autoBackupInterval = 0;
+            if (!('autoBackupNextAt' in user.settings)) user.settings.autoBackupNextAt = null;
+            return user.settings;
+        }
+
+        function ensureAutoBackupSchedule(user) {
+            const settings = ensureUserSettings(user);
+            const interval = settings.autoBackupInterval || 0;
+            if (interval <= 0) {
+                settings.autoBackupNextAt = null;
+                return null;
+            }
+            if (!settings.autoBackupNextAt) {
+                settings.autoBackupNextAt = new Date(Date.now() + interval * 60000).toISOString();
+                db.save();
+            }
+            return settings.autoBackupNextAt;
+        }
+
+        function getAutoBackupRemainingMinutes(user) {
+            const settings = ensureUserSettings(user);
+            const interval = settings.autoBackupInterval || 0;
+            if (interval <= 0) return null;
+            const nextAt = settings.autoBackupNextAt ? new Date(settings.autoBackupNextAt).getTime() : null;
+            if (!nextAt || Number.isNaN(nextAt)) return interval;
+            const diffMs = nextAt - Date.now();
+            return Math.max(0, Math.ceil(diffMs / 60000));
+        }
+
+        function formatLoggingSnapshotHTML() {
+            const user = db.getUser(currentUser);
+            const robotInfo = user.robot_info;
+            const logs = user.logs || [];
+
+            let headerText = `🤖 **${robotInfo[0] || '?'}** • 🗺 **${robotInfo[1] || '?'}**`;
+            if (currentBranch) headerText += ` • 🌿 **${currentBranch}**`;
+            if (currentStartTime) {
+                const now = new Date();
+                const currentTime = formatTimeWithoutSeconds(now);
+                const duration = computeDuration(currentStartTime, currentTime);
+                headerText += `
+📅 ${stripSecondsFromTimeString(currentStartTime)} — ${currentTime} (${duration})`;
+            }
+
+            let logsHTML = '';
+            logs.forEach(log => {
+                if (typeof log === 'string') logsHTML += `<br>${log}`;
+                else if (log.type === 'coords' && log.link) logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.shortText || log.text.split('     ')[0]}</span>`;
+                else if (log.type === 'address') logsHTML += `<br><span class="address-text">${log.text}</span>`;
+                else logsHTML += `<br>${JSON.stringify(log)}`;
+            });
+
+            return headerText + (logsHTML || '<br>(пока нет записей)');
+        }
+
+        function renderLoggingSnapshot() {
+            const chat = document.getElementById('chatContent');
+            if (!chat) return;
+            const existing = document.getElementById('loggingSnapshot');
+            if (existing) existing.remove();
+
+            const messageDiv = document.createElement('div');
+            messageDiv.className = 'message system';
+            messageDiv.id = 'loggingSnapshot';
+
+            const timeDiv = document.createElement('div');
+            timeDiv.className = 'time';
+            timeDiv.textContent = formatTimeWithoutSeconds(new Date());
+
+            const textDiv = document.createElement('div');
+            textDiv.className = 'text';
+            textDiv.innerHTML = formatLoggingSnapshotHTML();
+
+            messageDiv.appendChild(timeDiv);
+            messageDiv.appendChild(textDiv);
+            chat.appendChild(messageDiv);
+            chat.scrollTop = chat.scrollHeight;
+        }
+
+        function stopLoggingTimers() {
+            if (loggingTickInterval) {
+                clearInterval(loggingTickInterval);
+                loggingTickInterval = null;
+            }
+        }
+
+        function maybeTriggerAutoBackup() {
+            if (!currentUser) return;
+            const user = db.getUser(currentUser);
+            ensureUserSettings(user);
+            const interval = user.settings.autoBackupInterval || 0;
+            if (interval <= 0) return;
+            if (user.state !== 'logging') return;
+
+            // Сразу продвигаем следующий дедлайн, чтобы таймер гарантированно перезапускался
+            user.settings.autoBackupNextAt = new Date(Date.now() + interval * 60000).toISOString();
+            db.save();
+
+            if (!user.logs || user.logs.length === 0) {
+                addMessage('ℹ️ Авто-бэкап пропущен: в текущем логе пока нет записей.', 'system');
+                updateStats();
+                return;
+            }
+
+            const confirmText = `💾 Авто-бэкап: сохранить текущий лог в TXT?
+
+Интервал: ${interval} мин`;
+            const confirmed = window.confirm(confirmText);
+            if (!confirmed) {
+                addMessage('⏳ Авто-бэкап отложен до следующего интервала.', 'system');
+                updateStats();
+                return;
+            }
+
+            const robot = user.robot_info?.[0] || 'robot';
+            const route = user.robot_info?.[1] || 'route';
+            const endTime = formatTimeForLog(new Date(), user.settings.showSecondsInLogs);
+            const content = formatLogsForExport(
+                user.logs,
+                robot,
+                route,
+                currentStartTime || endTime,
+                endTime,
+                currentBranch || null
+            );
+            const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup_${robot}_${route}_${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.txt`;
+            a.click();
+            URL.revokeObjectURL(url);
+
+            addMessage('💾 Авто-бэкап сохранён', 'system');
+            updateStats();
+        }
+
+        function startLoggingTimers() {
+            stopLoggingTimers();
+            if (!currentUser) return;
+            const user = db.getUser(currentUser);
+            ensureUserSettings(user);
+
+            if (user.state !== 'logging') {
+                updateStats();
+                return;
+            }
+
+            if (user.settings.autoBackupInterval > 0) {
+                ensureAutoBackupSchedule(user);
+            } else {
+                user.settings.autoBackupNextAt = null;
+                db.save();
+            }
+
+            loggingTickInterval = setInterval(() => {
+                if (!currentUser) return;
+                const activeUser = db.getUser(currentUser);
+                ensureUserSettings(activeUser);
+
+                if (activeUser.state !== 'logging') {
+                    updateStats();
+                    return;
+                }
+
+                renderLoggingSnapshot();
+                updateStats();
+
+                if (activeUser.settings.autoBackupInterval > 0) {
+                    ensureAutoBackupSchedule(activeUser);
+                    const nextAt = activeUser.settings.autoBackupNextAt ? new Date(activeUser.settings.autoBackupNextAt).getTime() : null;
+                    if (nextAt && Date.now() >= nextAt) {
+                        maybeTriggerAutoBackup();
+                    }
+                }
+            }, 60000);
+
+            updateStats();
+        }
+
+        function toggleSecondsInLogs() {
+            if (!currentUser) return;
+            const user = db.getUser(currentUser);
+            ensureUserSettings(user);
+            user.settings.showSecondsInLogs = !user.settings.showSecondsInLogs;
+            db.save();
+            addMessage(`🕒 Секунды в логах: ${user.settings.showSecondsInLogs ? 'ВКЛ' : 'ВЫКЛ'}`, 'system');
+            if (user.state === 'logging') {
+                renderLoggingSnapshot();
+                updateStats();
+            }
+        }
+
+        function toggleAutoBackup() {
+            if (!currentUser) return;
+            const user = db.getUser(currentUser);
+            ensureUserSettings(user);
+
+            const intervals = [0, 15, 30, 60, 120];
+            const current = user.settings.autoBackupInterval || 0;
+            const idx = intervals.indexOf(current);
+            const next = intervals[(idx + 1) % intervals.length];
+
+            user.settings.autoBackupInterval = next;
+            user.settings.autoBackupNextAt = next > 0 ? new Date(Date.now() + next * 60000).toISOString() : null;
+            db.save();
+
+            addMessage(`⏳ Авто-бэкап: ${next === 0 ? 'ВЫКЛ' : `${next} мин`}`, 'system');
+            updateStats();
+        }
+
+        function buildActiveReportHeader(user) {
+            const robotInfo = user.robot_info || [];
+            let header = `🤖 **${robotInfo[0] || '?'}** • 🗺 **${robotInfo[1] || '?'}**`;
+            if (currentBranch) header += ` • 🌿 **${currentBranch}**`;
+            if (currentStartTime) {
+                const endTime = currentEndTime ? currentEndTime : formatTimeWithoutSeconds(new Date());
+                header += `
+📅 ${stripSecondsFromTimeString(currentStartTime)} — ${stripSecondsFromTimeString(endTime)} (${computeDuration(currentStartTime, endTime)})`;
+            } else {
+                header += `
+📅 ${formatTimeWithoutSeconds(new Date())}`;
+            }
+            return header;
+        }
+
         // ============================================
+        // КОМАНДЫ ПО УМОЛЧАНИЮ
+        // ============================================
+// ============================================
         // КОМАНДЫ ПО УМОЛЧАНИЮ
         // ============================================
         const DEFAULT_COMMANDS = [
@@ -820,7 +1110,10 @@
                             address_counter: 1
                         },
                         settings: {
-                            theme: "dark"
+                            theme: "dark",
+                            showSecondsInLogs: false,
+                            autoBackupInterval: 0,
+                            autoBackupNextAt: null
                         },
                         created: new Date().toISOString()
                     };
@@ -829,7 +1122,9 @@
                 return this.data.users[login];
             }
             getUser(login) {
-                return this.data.users[login] || this.createUser(login);
+                const user = this.data.users[login] || this.createUser(login);
+                ensureUserSettings(user);
+                return user;
             }
             setUser(login, key, value) {
                 if (this.data.users[login]) {
@@ -881,7 +1176,7 @@
                 const coords = user.coordinates;
                 const parsed = this.parseCoordinates(input);
                 const now = new Date();
-                const timeStr = formatTimeWithoutSeconds(now);
+                const timeStr = formatTimeForLog(now, user.settings.showSecondsInLogs);
                 let logEntry;
                 if (parsed.type === 'coords') {
                     const linkToSave = parsed.fullLink || DEFAULT_COORDS_LINK;
@@ -938,6 +1233,7 @@
         let currentStartTime = null;   // время начала (устанавливается при первом нажатии "Начало маршрута")
         let currentEndTime = null;     // время окончания (при завершении)
         let currentBranch = null;      // ветка (текст) – только для заголовка, не в тело лога
+        let loggingTickInterval = null;
         
         // ============================================
         // ФУНКЦИИ ИНТЕРФЕЙСА
@@ -1039,12 +1335,24 @@
         
         function updateStats() {
             const stats = document.getElementById('stats');
-            if (currentUser) {
-                const user = db.getUser(currentUser);
-                stats.textContent = `📊 Записей: ${user.logs.length} | Архив: ${user.logs_archive.length}/${MAX_ARCHIVE_SIZE}`;
-            } else {
+            if (!currentUser) {
                 stats.textContent = '';
+                return;
             }
+
+            const user = db.getUser(currentUser);
+            ensureUserSettings(user);
+
+            let text = `📊 Записей: ${user.logs.length} | Архив: ${user.logs_archive.length}/${MAX_ARCHIVE_SIZE}`;
+
+            if (user.state === 'logging' && user.settings.autoBackupInterval > 0) {
+                const remaining = getAutoBackupRemainingMinutes(user);
+                if (remaining !== null) {
+                    text += ` | ⏳ Бэкап через: ${remaining} мин`;
+                }
+            }
+
+            stats.textContent = text;
         }
         
         function loadUsers() {
@@ -1243,6 +1551,7 @@
                 editMode = false;
                 db.setCurrentUser(login);
                 const user = db.getUser(login);
+                ensureUserSettings(user);
                 applyTheme(user.settings.theme);
                 updateUserInfo();
                 updateStats();
@@ -1257,6 +1566,7 @@
         }
         
         function logout() {
+            stopLoggingTimers();
             currentUser = null;
             editMode = false;
             db.setCurrentUser(null);
@@ -1375,7 +1685,7 @@
             if (currentStartTime) {
                 const endTime = currentEndTime ? currentEndTime : formatTimeWithoutSeconds(new Date());
                 const duration = computeDuration(currentStartTime, endTime);
-                header += `\n📅 ${currentStartTime} — ${endTime} = ${duration}`;
+                header += `\n📅 ${stripSecondsFromTimeString(currentStartTime)} — ${stripSecondsFromTimeString(endTime)} = ${duration}`;
             } else {
                 header += `\n📅 ${formatTimeWithoutSeconds(new Date())}`;
             }
@@ -1443,14 +1753,14 @@
         
         function handleAction(index) {
             const user = db.getUser(currentUser);
+            ensureUserSettings(user);
             const command = user.commands[index];
             const now = new Date();
-            const timeStr = formatTimeWithoutSeconds(now);
+            const timeStr = formatTimeForLog(now, user.settings.showSecondsInLogs);
             
-            // Если это команда "Начало маршрута" и время ещё не установлено, фиксируем время старта
             if (command.name === "🚀 Начало маршрута" && currentStartTime === null) {
                 currentStartTime = timeStr;
-                addMessage(`🕒 Время начала маршрута зафиксировано: ${currentStartTime}`, 'system');
+                addMessage(`🕒 Время начала маршрута зафиксировано: ${stripSecondsFromTimeString(currentStartTime)}`, 'system');
             }
             
             const logEntry = `${timeStr} ${command.log_text}`;
@@ -1463,9 +1773,19 @@
         function handleDeleteLastLog() {
             const user = db.getUser(currentUser);
             const logs = [...user.logs];
-            if (logs.length > 0) logs.pop();
+            const removed = logs.length > 0 ? logs.pop() : null;
             db.setUser(currentUser, 'logs', logs);
-            addMessage('✅ Последняя запись удалена', 'system');
+
+            if (removed && isRouteStartLog(removed)) {
+                currentStartTime = recalculateCurrentStartTimeFromLogs(logs);
+                addMessage(currentStartTime
+                    ? `✅ Последняя запись удалена. Время начала пересчитано: ${stripSecondsFromTimeString(currentStartTime)}`
+                    : '✅ Последняя запись удалена. Время начала сброшено.', 'system');
+            } else {
+                addMessage('✅ Последняя запись удалена', 'system');
+            }
+
+            updateStats();
             showLoggingScreen();
         }
         
@@ -1495,38 +1815,17 @@
         
         function showLoggingScreen() {
             const user = db.getUser(currentUser);
-            const robotInfo = user.robot_info;
-            const logs = user.logs || [];
-            
-            // Формируем заголовок для отображения в области сообщений
-            let headerText = `🤖 **${robotInfo[0] || '?'}** • 🗺 **${robotInfo[1] || '?'}**`;
-            if (currentBranch) headerText += ` • 🌿 **${currentBranch}**`;
-            if (currentStartTime) {
-                const now = new Date();
-                const currentTime = formatTimeWithoutSeconds(now);
-                const duration = computeDuration(currentStartTime, currentTime);
-                headerText += `\n📅 ${currentStartTime} — ${currentTime} (${duration})`;
-            }
-            
-            // Отображаем логи
-            let logsHTML = '';
-            logs.forEach(log => {
-                if (typeof log === 'string') logsHTML += `<br>${log}`;
-                else if (log.type === 'coords' && log.link) logsHTML += `<br><span class="coords-link" data-link="${log.link}">${log.shortText || log.text.split('     ')[0]}</span>`;
-                else if (log.type === 'address') logsHTML += `<br><span class="address-text">${log.text}</span>`;
-                else logsHTML += `<br>${JSON.stringify(log)}`;
-            });
-            
-            addMessage(headerText + (logsHTML || '<br>(пока нет записей)'), 'system', true);
-            
-            // Командные кнопки (из настроек)
+            ensureUserSettings(user);
+
+            renderLoggingSnapshot();
+            startLoggingTimers();
+
             const commandButtons = user.commands.map((cmd, idx) => ({
                 text: cmd.name,
                 commandIdx: idx,
                 callback: () => handleAction(idx)
             }));
-            
-            // Управляющие кнопки (включая технические и копирование)
+
             const controlButtons = [
                 { text: '❌ Закончить', class: 'danger', callback: () => handleStopRecording() },
                 { text: '❌ Удалить последнюю', class: 'danger', callback: () => handleDeleteLastLog() },
@@ -1536,48 +1835,45 @@
                 { text: '📋 Скопировать отчет', class: 'button-yellow', callback: () => copyCurrentReport() },
                 { text: '📎 Вставка технической информации', class: 'button-info', callback: () => showTechInfoMenu() }
             ];
-            
-            // Собираем порядок: сначала команды, потом управление
+
             const allButtons = [
                 ...commandButtons.map(cmd => [cmd]),
                 controlButtons
             ];
-            
+
             renderDraggableKeyboard(allButtons);
             showInput('Или введите свой текст...');
             db.setUser(currentUser, 'state', 'logging');
+            startLoggingTimers();
         }
         
         function handleStopRecording() {
             const user = db.getUser(currentUser);
+            ensureUserSettings(user);
             const robotInfo = user.robot_info;
             const logs = user.logs;
-            
-            // Если время старта не было установлено (не нажали "Начало маршрута"), используем текущее время как старт
+
+            stopLoggingTimers();
+
             if (!currentStartTime) {
-                currentStartTime = formatTimeWithoutSeconds(new Date());
-                addMessage(`⚠️ Время старта не зафиксировано, установлено текущее: ${currentStartTime}`, 'system');
+                currentStartTime = formatTimeForLog(new Date(), user.settings.showSecondsInLogs);
+                addMessage(`⚠️ Время старта не зафиксировано, установлено текущее: ${stripSecondsFromTimeString(currentStartTime)}`, 'system');
             }
-            
-            // Устанавливаем время окончания
-            currentEndTime = formatTimeWithoutSeconds(new Date());
-            
-            // НЕ добавляем durationStr в logs - убираем дублирующую строку
-            
-            // Формируем footer для архива: [робот, маршрут, время_начала, время_окончания, ветка]
+
+            currentEndTime = formatTimeForLog(new Date(), user.settings.showSecondsInLogs);
+
             const logFooter = [robotInfo[0], robotInfo[1], currentStartTime, currentEndTime, currentBranch || null];
             const archive = [...user.logs_archive];
-            const archiveEntry = [...logs, logFooter];  // используем logs без durationStr
+            const archiveEntry = [...logs, logFooter];
             archive.unshift(archiveEntry);
             if (archive.length > MAX_ARCHIVE_SIZE) archive.length = MAX_ARCHIVE_SIZE;
             db.setUser(currentUser, 'logs_archive', archive);
             db.setUser(currentUser, 'logs', []);
-            
-            // Сброс временных переменных
+
             currentStartTime = null;
             currentEndTime = null;
             currentBranch = null;
-            
+
             addMessage('✅ Запись завершена и сохранена в архиве!', 'system');
             updateStats();
             handleMainMenu();
@@ -1613,7 +1909,7 @@
                 }).join('\n');
                 const footer = lastLog[lastLog.length - 1];
                 const branch = footer[4] ? `\nВетка: ${footer[4]}` : '';
-                const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}**${branch}\n📅 ${footer[2]} — ${footer[3]} (${computeDuration(footer[2], footer[3])})\n\n`;
+                const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}**${branch}\n📅 ${stripSecondsFromTimeString(footer[2])} — ${stripSecondsFromTimeString(footer[3])} (${computeDuration(footer[2], footer[3])})\n\n`;
                 addMessage(header + logsText, 'system');
                 showKeyboard([
                     [{ text: '📥 Экспорт в TXT', callback: () => exportLastLog() }],
@@ -1636,7 +1932,7 @@
             const a = document.createElement('a');
             a.href = url;
             const duration = computeDuration(footer[2], footer[3]);
-            a.download = `log_${footer[0]}_${footer[1]}_${footer[2].replace(/:/g,'-')}_${duration.replace(/[^а-яa-z0-9]/gi, '_')}.txt`;
+            a.download = `log_${footer[0]}_${footer[1]}_${stripSecondsFromTimeString(footer[2]).replace(/:/g,'-')}_${duration.replace(/[^а-яa-z0-9]/gi, '_')}.txt`;
             a.click();
             URL.revokeObjectURL(url);
             addMessage('📥 Последний лог экспортирован', 'system');
@@ -1656,7 +1952,7 @@
                 const footer = entry[entry.length - 1];
                 const branch = footer[4] ? ` • 🌿${footer[4]}` : '';
                 const duration = computeDuration(footer[2], footer[3]);
-                const displayText = `🤖 ${footer[0]} • 🗺 ${footer[1]}${branch} • ${footer[2]} — ${footer[3]} (${duration})`;
+                const displayText = `🤖 ${footer[0]} • 🗺 ${footer[1]}${branch} • ${stripSecondsFromTimeString(footer[2])} — ${stripSecondsFromTimeString(footer[3])} (${duration})`;
                 text += `${i+1}. ${displayText}\n`;
                 buttons.push([{ text: `📄 ${displayText}`, callback: () => handleViewArchiveItem(i) }]);
             });
@@ -1686,7 +1982,7 @@
                 checkbox.checked = true;
                 const label = document.createElement('label');
                 label.htmlFor = `export_${i}`;
-                label.textContent = `${i+1}. 🤖 ${footer[0]} • 🗺 ${footer[1]}${branch} • ${footer[2]} — ${footer[3]} (${duration})`;
+                label.textContent = `${i+1}. 🤖 ${footer[0]} • 🗺 ${footer[1]}${branch} • ${stripSecondsFromTimeString(footer[2])} — ${stripSecondsFromTimeString(footer[3])} (${duration})`;
                 div.appendChild(checkbox);
                 div.appendChild(label);
                 container.appendChild(div);
@@ -1751,7 +2047,7 @@
             const footer = entry[entry.length - 1];
             const branch = footer[4] ? `\nВетка: ${footer[4]}` : '';
             const duration = computeDuration(footer[2], footer[3]);
-            const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}**${branch}\n📅 ${footer[2]} — ${footer[3]} (${duration})\n\n`;
+            const header = `🤖 **${footer[0]}** • 🗺 **${footer[1]}**${branch}\n📅 ${stripSecondsFromTimeString(footer[2])} — ${stripSecondsFromTimeString(footer[3])} (${duration})\n\n`;
             addMessage('📄 **Архивный лог**\n\n' + header + logsText, 'system');
             showKeyboard([
                 [{ text: '📥 Экспорт в TXT', callback: () => exportArchiveItem(index) }],
@@ -1771,7 +2067,7 @@
             const a = document.createElement('a');
             a.href = url;
             const duration = computeDuration(footer[2], footer[3]);
-            a.download = `log_${footer[0]}_${footer[1]}_${footer[2].replace(/:/g,'-')}_${duration.replace(/[^а-яa-z0-9]/gi, '_')}.txt`;
+            a.download = `log_${footer[0]}_${footer[1]}_${stripSecondsFromTimeString(footer[2]).replace(/:/g,'-')}_${duration.replace(/[^а-яa-z0-9]/gi, '_')}.txt`;
             a.click();
             URL.revokeObjectURL(url);
             addMessage('📥 Лог экспортирован', 'system');
@@ -1783,11 +2079,32 @@
         function handleUserCommands() {
             if (!currentUser) return;
             const user = db.getUser(currentUser);
+            ensureUserSettings(user);
             const commands = user.commands;
-            let helpText = '⚙️ **Настройки**\n\n• ➕ Добавить команду\n• ✏️ Редактировать\n• ❌ Удалить\n• 🔄 Сбросить\n• 📤 Экспорт\n• 📥 Импорт\n• ◀️ Назад\n\n**Текущие команды:**\n';
-            commands.forEach((cmd, i) => { helpText += `${i+1}. ${cmd.name}\n`; });
+            let helpText = `⚙️ **Настройки**
+
+• ➕ Добавить команду
+• ✏️ Редактировать
+• ❌ Удалить
+• 🔄 Сбросить
+• 📤 Экспорт
+• 📥 Импорт
+• 🕒 Секунды
+• ⏳ Авто-бэкап
+• ◀️ Назад
+
+**Текущие команды:**
+`;
+            commands.forEach((cmd, i) => { helpText += `${i+1}. ${cmd.name}
+`; });
+            helpText += `
+🕒 Секунды в логах: ${user.settings.showSecondsInLogs ? 'ВКЛ' : 'ВЫКЛ'}`;
+            helpText += `
+⏳ Авто-бэкап: ${user.settings.autoBackupInterval ? `${user.settings.autoBackupInterval} мин` : 'ВЫКЛ'}`;
             addMessage(helpText, 'system');
             showKeyboard([
+                [{ text: user.settings.showSecondsInLogs ? '🕒 Секунды: ВКЛ' : '🕒 Секунды: ВЫКЛ', callback: () => toggleSecondsInLogs() }],
+                [{ text: `⏳ Авто-бэкап${user.settings.autoBackupInterval ? `: ${user.settings.autoBackupInterval} мин` : ''}`, callback: () => toggleAutoBackup() }],
                 [{ text: '➕ Добавить команду', callback: () => handleUserAddStart() }],
                 [{ text: '✏️ Редактировать команду', callback: () => handleUserEditStart() }],
                 [{ text: '❌ Удалить команду', callback: () => handleUserDeleteStart() }],
@@ -1906,29 +2223,61 @@
             buttons.push([{ text: '◀️ Назад', callback: () => handleUserCommands() }]);
             showKeyboard(buttons);
         }
-        
+
         function handleUserEditSelect(index) {
             const user = db.getUser(currentUser);
             const cmd = user.commands[index];
+            if (!cmd) {
+                addMessage('❌ Команда не найдена', 'error');
+                handleUserCommands();
+                return;
+            }
             db.setUser(currentUser, 'editing_command', index);
-            addMessage(`Редактирование: **${cmd.name}**\n\nТекущий текст лога: ${cmd.log_text}\n\nВведите **новый текст** для лога:`, 'system');
+            db.setUser(currentUser, 'temporary', {
+                editIndex: index,
+                oldName: cmd.name,
+                newName: cmd.name,
+                oldLogText: cmd.log_text,
+                newLogText: cmd.log_text
+            });
+            addMessage(`Редактирование: **${cmd.name}**
+
+Сначала введите **новое название кнопки**, затем текст для лога.`, 'system');
+            showInput('Новое название команды...');
+            db.setUser(currentUser, 'state', 'user_edit_name');
+        }
+
+        function handleUserEditName(text) {
+            const user = db.getUser(currentUser);
+            const temp = user.temporary || {};
+            temp.newName = text.trim();
+            db.setUser(currentUser, 'temporary', temp);
+            addMessage(`✅ Название будет: **${temp.newName || temp.oldName || ''}**
+
+Теперь введите **новый текст лога**:`, 'system');
             showInput('Новый текст лога...');
             db.setUser(currentUser, 'state', 'user_edit_log');
         }
-        
+
         function handleUserEditLog(text) {
             const user = db.getUser(currentUser);
-            const idx = user.editing_command;
+            const temp = user.temporary || {};
+            const idx = typeof temp.editIndex === 'number' ? temp.editIndex : user.editing_command;
             if (idx !== null && idx >= 0 && idx < user.commands.length) {
                 const commands = [...user.commands];
                 const oldName = commands[idx].name;
-                commands[idx].log_text = text;
+                const newName = (temp.newName && temp.newName.trim()) ? temp.newName.trim() : oldName;
+                commands[idx] = { ...commands[idx], name: newName, log_text: text };
                 db.saveCommands(currentUser, commands);
-                addMessage(`✅ Команда **'${oldName}'** обновлена!`, 'system');
+                addMessage(`✅ Команда **'${oldName}'** обновлена: **${newName}**`, 'system');
             }
+            db.setUser(currentUser, 'editing_command', null);
+            db.setUser(currentUser, 'temporary', null);
+            db.setUser(currentUser, 'state', 'commands_menu');
+            hideInput();
             handleUserCommands();
         }
-        
+
         function handleUserReset() {
             showKeyboard([
                 [{ text: '✅ Да, сбросить', class: 'danger', callback: () => handleUserResetConfirm() }],
@@ -1961,13 +2310,14 @@
             else if (state === 'awaiting_coordinates') handleSaveCoordinates(text);
             else if (state === 'logging') {
                 const now = new Date();
-                const timeStr = formatTimeWithoutSeconds(now);
+                const timeStr = formatTimeForLog(now, user.settings.showSecondsInLogs);
                 const logs = [...user.logs, `${timeStr} ${text}`];
                 db.setUser(currentUser, 'logs', logs);
                 updateStats();
                 showLoggingScreen();
             } else if (state === 'user_add_name') handleUserAddName(text);
             else if (state === 'user_add_log') handleUserAddLog(text);
+            else if (state === 'user_edit_name') handleUserEditName(text);
             else if (state === 'user_edit_log') handleUserEditLog(text);
             else if (state === 'tech_branch') {
                 processTechInput(text, 'branch');
