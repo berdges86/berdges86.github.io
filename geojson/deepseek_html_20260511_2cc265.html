@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON Viewer — сканирование папки + геолокация</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #map { width: 100%; height: 100%; }
+        .controls-panel {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            z-index: 100;
+            width: 300px;
+            font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+        }
+        .panel-header {
+            padding: 12px 15px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 8px 8px 0 0;
+            cursor: pointer;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .panel-header:hover { background: #34495e; }
+        .toggle-icon { font-size: 18px; }
+        .panel-content {
+            padding: 10px;
+            max-height: 70vh;
+            overflow-y: auto;
+            display: block;
+        }
+        .panel-content.collapsed { display: none; }
+        .upload-btn {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: #3498db;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .upload-btn:hover { background: #2980b9; }
+        .scan-btn {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 10px;
+            background: #27ae60;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.2s;
+        }
+        .scan-btn:hover { background: #229954; }
+        .layer-item {
+            padding: 8px 10px;
+            margin-bottom: 8px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 3px solid;
+        }
+        .layer-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 5px;
+        }
+        .layer-header input { width: 18px; height: 18px; cursor: pointer; }
+        .layer-name { flex: 1; font-weight: 500; }
+        .layer-stats {
+            font-size: 10px;
+            color: #6c757d;
+            margin-top: 5px;
+            padding-left: 28px;
+        }
+        .coord-switch {
+            padding-left: 28px;
+            margin-top: 6px;
+        }
+        .coord-switch button {
+            background: #ecf0f1;
+            border: 1px solid #bdc3c7;
+            border-radius: 4px;
+            padding: 3px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .coord-switch button:hover { background: #d5dbdb; }
+        .coord-status {
+            font-size: 10px;
+            margin-left: 8px;
+            color: #e67e22;
+        }
+        .remove-layer {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 3px;
+            padding: 2px 8px;
+            font-size: 11px;
+            cursor: pointer;
+        }
+        .remove-layer:hover { background: #c0392b; }
+        .no-files {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-size: 12px;
+        }
+        .file-input { display: none; }
+        .help-text {
+            font-size: 11px;
+            color: #2c3e50;
+            margin-top: 10px;
+            padding: 8px;
+            background: #ecf0f1;
+            border-radius: 5px;
+        }
+        .status {
+            font-size: 11px;
+            color: #666;
+            margin-top: 8px;
+            padding: 5px;
+            text-align: center;
+        }
+        .geolocation-btn {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 100;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .geolocation-btn:hover {
+            transform: scale(1.05);
+            background: #f0f0f0;
+        }
+        .geolocation-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<div class="controls-panel">
+    <div class="panel-header" onclick="togglePanel()">
+        <h3>📁 Слои GeoJSON</h3>
+        <span class="toggle-icon" id="toggleIcon">▼</span>
+    </div>
+    <div class="panel-content" id="panelContent">
+        <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+            📂 Загрузить файл
+        </button>
+        <button class="scan-btn" onclick="fullScan()">
+            🔍 Сканировать папку
+        </button>
+        <input type="file" id="fileInput" class="file-input" accept=".geojson,.json" multiple>
+        <div id="layersList"></div>
+        <div id="statusMsg" class="status"></div>
+        <div class="help-text">
+            ✅ При загрузке страницы ищет: data.json, numbered_points.geojson, points.geojson<br>
+            🔍 Кнопка «Сканировать» ищет ВСЕ .geojson/.json файлы в папке<br>
+            🔄 Если координаты отображаются неправильно — нажмите «Инверсия XY»<br>
+            📍 Кнопка 🤖 — ваше местоположение
+        </div>
+    </div>
+</div>
+
+<button class="geolocation-btn" id="geolocationBtn" title="Определить моё местоположение">🤖</button>
+
+<script src="https://api-maps.yandex.ru/2.1/?apikey=7d63d6f0-6df2-475f-a7cd-4354a87ce87b&lang=ru_RU"></script>
+<script src="https://yandex.st/jquery/2.2.3/jquery.min.js"></script>
+
+<script>
+    let myMap;
+    let layers = [];
+    let colorIndex = 0;
+    let userPlacemark = null;
+    
+    const colorPalette = [
+        '#E74C3C', '#2ECC71', '#3498DB', '#F39C12', '#9B59B6',
+        '#1ABC9C', '#E67E22', '#34495E', '#16A085', '#C0392B',
+        '#27AE60', '#2980B9', '#8E44AD', '#D35400', '#7F8C8D',
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'
+    ];
+    
+    function getNextColor() {
+        return colorPalette[colorIndex++ % colorPalette.length];
+    }
+    
+    function getCoordinates(coords, swapXY) {
+        if (!coords || coords.length < 2) return null;
+        if (swapXY) {
+            return { lat: coords[0], lon: coords[1] };
+        } else {
+            return { lat: coords[1], lon: coords[0] };
+        }
+    }
+    
+    function getPointId(feature, idx) {
+        if (feature.id !== undefined && feature.id !== null) return feature.id;
+        if (feature.properties?.id !== undefined) return feature.properties.id;
+        if (feature.properties?.name !== undefined) return feature.properties.name;
+        if (feature.properties?.title !== undefined) return feature.properties.title;
+        return idx + 1;
+    }
+    
+    function sortPointsById(features) {
+        return features.slice().sort((a, b) => {
+            let idA = getPointId(a, 0);
+            let idB = getPointId(b, 0);
+            let numA = parseFloat(idA);
+            let numB = parseFloat(idB);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return String(idA).localeCompare(String(idB));
+        });
+    }
+    
+    function createLayerFromGeoJSON(geojson, fileName, color, mapInstance, swapXY = false) {
+        if (!geojson.features || geojson.features.length === 0) return null;
+        
+        const sorted = sortPointsById(geojson.features);
+        const points = [];
+        
+        for (let i = 0; i < sorted.length; i++) {
+            const f = sorted[i];
+            const geom = f.geometry;
+            if (!geom || geom.type !== 'Point') continue;
+            
+            const coord = getCoordinates(geom.coordinates, swapXY);
+            if (!coord) continue;
+            if (coord.lat < -90 || coord.lat > 90 || coord.lon < -180 || coord.lon > 180) continue;
+            
+            points.push({ id: getPointId(f, i), lat: coord.lat, lon: coord.lon });
+        }
+        
+        if (points.length === 0) return null;
+        
+        points.sort((a,b) => {
+            let na = parseFloat(a.id), nb = parseFloat(b.id);
+            if (!isNaN(na) && !isNaN(nb)) return na - nb;
+            return String(a.id).localeCompare(String(b.id));
+        });
+        
+        const coordinatesLine = points.map(p => [p.lat, p.lon]);
+        const placemarks = [];
+        
+        points.forEach(point => {
+            let display = String(point.id);
+            if (display.length > 8) display = display.substring(0,7)+'…';
+            
+            const placemark = new ymaps.Placemark(
+                [point.lat, point.lon],
+                {},
+                {
+                    iconLayout: 'default#imageWithContent',
+                    iconImageSize: [28, 28],
+                    iconImageOffset: [-14, -14],
+                    iconContentOffset: [0, 0],
+                    iconContentLayout: ymaps.templateLayoutFactory.createClass(
+                        `<div style="background: ${color}; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px; font-family: Arial; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${display}</div>`
+                    )
+                }
+            );
+            placemarks.push(placemark);
+        });
+        
+        let polyline = null;
+        if (coordinatesLine.length > 1) {
+            polyline = new ymaps.Polyline(coordinatesLine, {}, {
+                strokeColor: color,
+                strokeWidth: 2.5,
+                strokeOpacity: 0.7
+            });
+        }
+        
+        return {
+            id: fileName + '_' + Date.now() + '_' + Math.random(),
+            name: fileName,
+            color: color,
+            visible: true,
+            swapXY: swapXY,
+            placemarks: placemarks,
+            polyline: polyline,
+            pointCount: points.length,
+            map: mapInstance,
+            rawData: geojson
+        };
+    }
+    
+    function toggleSwapXY(layer) {
+        layer.placemarks.forEach(p => layer.map.geoObjects.remove(p));
+        if (layer.polyline) layer.map.geoObjects.remove(layer.polyline);
+        
+        const newSwap = !layer.swapXY;
+        const newLayer = createLayerFromGeoJSON(layer.rawData, layer.name, layer.color, layer.map, newSwap);
+        
+        if (newLayer) {
+            const index = layers.findIndex(l => l.id === layer.id);
+            if (index !== -1) {
+                newLayer.id = layer.id;
+                newLayer.visible = layer.visible;
+                layers[index] = newLayer;
+                if (newLayer.visible) {
+                    newLayer.placemarks.forEach(p => layer.map.geoObjects.add(p));
+                    if (newLayer.polyline) layer.map.geoObjects.add(newLayer.polyline);
+                }
+                updateLayersUI();
+            }
+        }
+    }
+    
+    function addLayer(geojson, fileName, color, mapInstance, centerIfFirst = false, swapXY = false) {
+        const layer = createLayerFromGeoJSON(geojson, fileName, color, mapInstance, swapXY);
+        if (!layer) return false;
+        
+        if (layer.visible) {
+            layer.placemarks.forEach(p => mapInstance.geoObjects.add(p));
+            if (layer.polyline) mapInstance.geoObjects.add(layer.polyline);
+        }
+        layers.push(layer);
+        updateLayersUI();
+        
+        if (centerIfFirst && layers.length === 1 && layer.placemarks.length) {
+            const coords = layer.placemarks.map(p => p.geometry.getCoordinates());
+            const bounds = ymaps.util.bounds.fromPoints(coords);
+            mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
+        }
+        return true;
+    }
+    
+    function removeLayer(layer) {
+        layer.placemarks.forEach(p => layer.map.geoObjects.remove(p));
+        if (layer.polyline) layer.map.geoObjects.remove(layer.polyline);
+        const index = layers.findIndex(l => l.id === layer.id);
+        if (index !== -1) layers.splice(index, 1);
+        updateLayersUI();
+    }
+    
+    function setLayerVisibility(layer, visible) {
+        layer.visible = visible;
+        layer.placemarks.forEach(p => visible ? layer.map.geoObjects.add(p) : layer.map.geoObjects.remove(p));
+        if (layer.polyline) visible ? layer.map.geoObjects.add(layer.polyline) : layer.map.geoObjects.remove(layer.polyline);
+    }
+    
+    function updateLayersUI() {
+        const container = document.getElementById('layersList');
+        if (!container) return;
+        
+        if (layers.length === 0) {
+            container.innerHTML = '<div class="no-files">📁 Нет загруженных слоёв<br>Нажмите "Сканировать папку"</div>';
+            return;
+        }
+        
+        container.innerHTML = '';
+        layers.forEach((layer, idx) => {
+            const div = document.createElement('div');
+            div.className = 'layer-item';
+            div.style.borderLeftColor = layer.color;
+            div.innerHTML = `
+                <div class="layer-header">
+                    <input type="checkbox" id="layer_${idx}" ${layer.visible ? 'checked' : ''}>
+                    <div class="layer-name">🗺️ ${layer.name}</div>
+                    <button class="remove-layer" data-idx="${idx}">✕</button>
+                </div>
+                <div class="layer-stats">📍 ${layer.pointCount} точек | ${layer.polyline ? '🔗 соединены' : '🔘 без линии'}</div>
+                <div class="coord-switch">
+                    <button class="swap-btn" data-idx="${idx}">🔄 Инверсия XY</button>
+                    <span class="coord-status">${layer.swapXY ? 'Инверсия: вкл' : 'Инверсия: выкл'}</span>
+                </div>
+            `;
+            div.querySelector('input').addEventListener('change', (e) => setLayerVisibility(layer, e.target.checked));
+            div.querySelector('.swap-btn').addEventListener('click', () => toggleSwapXY(layer));
+            div.querySelector('.remove-layer').addEventListener('click', () => removeLayer(layer));
+            container.appendChild(div);
+        });
+    }
+    
+    function setStatus(text, isError = false) {
+        const el = document.getElementById('statusMsg');
+        if (el) {
+            el.innerHTML = text;
+            el.style.color = isError ? '#c0392b' : '#27ae60';
+            setTimeout(() => {
+                if (document.getElementById('statusMsg')?.innerHTML === text) {
+                    document.getElementById('statusMsg').innerHTML = '';
+                }
+            }, 4000);
+        }
+    }
+    
+    // ========== СКАНИРОВАНИЕ ==========
+    // 1. Прямой запрос к папке (directory listing)
+    function scanDirectoryListing() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: './',
+                type: 'GET',
+                timeout: 5000,
+                success: function(data) {
+                    const jsonFiles = [];
+                    const regex = /href="([^"]*\.(?:geojson|json))"/gi;
+                    let match;
+                    while ((match = regex.exec(data)) !== null) {
+                        let filename = match[1];
+                        if (!filename.startsWith('/') && !filename.startsWith('http')) {
+                            jsonFiles.push(filename);
+                        }
+                    }
+                    resolve(jsonFiles);
+                },
+                error: () => reject()
+            });
+        });
+    }
+    
+    // 2. Запасной вариант: пробуем известные имена файлов
+    function tryKnownFiles() {
+        const known = ['numbered_points.geojson', 'data.json', 'points.geojson', 'map.geojson', 'numbered_points.json'];
+        let loaded = 0;
+        known.forEach(filename => {
+            $.ajax({
+                url: filename,
+                dataType: 'json',
+                timeout: 3000
+            }).done(geojson => {
+                if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
+                    let name = filename.replace(/\.(geojson|json)$/i, '');
+                    const color = getNextColor();
+                    const isFirst = layers.length === 0;
+                    if (addLayer(geojson, name, color, myMap, isFirst, false)) {
+                        loaded++;
+                        console.log(`Авто-загружен: ${filename}`);
+                    }
+                }
+            }).fail(() => {});
+        });
+        return loaded;
+    }
+    
+    // Основная функция полного сканирования
+    async function fullScan(showStatus = true) {
+        if (showStatus) setStatus('🔍 Сканирование папки...');
+        
+        // Пытаемся получить список файлов через directory listing
+        const filesFromDir = await scanDirectoryListing().catch(() => []);
+        
+        if (filesFromDir.length > 0) {
+            if (showStatus) setStatus(`✅ Найдено ${filesFromDir.length} файлов. Загрузка...`);
+            let loadedCount = 0;
+            for (const filename of filesFromDir) {
+                if (layers.some(l => l.name === filename.replace(/\.(geojson|json)$/i, ''))) continue;
+                const geojson = await $.ajax({ url: filename, dataType: 'json', timeout: 5000 }).catch(() => null);
+                if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
+                    let name = filename.replace(/\.(geojson|json)$/i, '');
+                    if (name.length > 25) name = name.slice(0,22)+'…';
+                    const color = getNextColor();
+                    const isFirst = layers.length === 0;
+                    if (addLayer(geojson, name, color, myMap, isFirst, false)) {
+                        loadedCount++;
+                    }
+                }
+            }
+            if (showStatus) setStatus(`✅ Загружено ${loadedCount} файлов`);
+        } else {
+            // Если directory listing недоступен — пробуем известные имена
+            if (showStatus) setStatus('⚠️ Сканирование папки недоступно, ищу известные файлы...');
+            const loaded = tryKnownFiles();
+            if (loaded === 0 && showStatus) {
+                setStatus('❌ Файлы не найдены. Используйте кнопку "Загрузить файл"', true);
+            } else if (showStatus) {
+                setStatus(`✅ Загружено ${loaded} файлов`);
+            }
+        }
+    }
+    
+    // Геолокация
+    function setupGeolocation() {
+        const btn = document.getElementById('geolocationBtn');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            if (!navigator.geolocation) {
+                setStatus('❌ Браузер не поддерживает геолокацию', true);
+                return;
+            }
+            setStatus('📍 Определение местоположения...');
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    if (userPlacemark) myMap.geoObjects.remove(userPlacemark);
+                    userPlacemark = new ymaps.Placemark(
+                        [lat, lon],
+                        { hintContent: 'Моё местоположение', balloonContent: `Я здесь!<br>${lat.toFixed(6)}<br>${lon.toFixed(6)}` },
+                        {
+                            iconLayout: 'default#imageWithContent',
+                            iconImageSize: [40, 40],
+                            iconImageOffset: [-20, -20],
+                            iconContentOffset: [0, 0],
+                            iconContentLayout: ymaps.templateLayoutFactory.createClass(
+                                '<div style="font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">🤖</div>'
+                            )
+                        }
+                    );
+                    myMap.geoObjects.add(userPlacemark);
+                    myMap.setCenter([lat, lon], 15);
+                    setStatus(`✅ Местоположение: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+                },
+                (error) => {
+                    let msg = 'Ошибка геолокации';
+                    if (error.code === 1) msg = 'Доступ запрещён';
+                    else if (error.code === 2) msg = 'Позиция недоступна';
+                    else if (error.code === 3) msg = 'Время истекло';
+                    setStatus(`❌ ${msg}`, true);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+    }
+    
+    function setupFileUpload(mapInstance) {
+        const input = document.getElementById('fileInput');
+        input.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            const isFirst = layers.length === 0;
+            files.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.type !== 'FeatureCollection' || !data.features) throw new Error('Неверный формат');
+                        let name = file.name.replace(/\.(geojson|json)$/i, '');
+                        if (name.length > 25) name = name.slice(0,22)+'…';
+                        const color = getNextColor();
+                        addLayer(data, name, color, mapInstance, isFirst && idx === 0 && layers.length === 0, false);
+                        setStatus(`✅ Загружен: ${file.name}`);
+                    } catch(err) {
+                        alert(`Ошибка в ${file.name}: ${err.message}`);
+                        setStatus(`❌ Ошибка: ${file.name}`, true);
+                    }
+                };
+                reader.readAsText(file);
+            });
+            input.value = '';
+        });
+    }
+    
+    window.togglePanel = function() {
+        const content = document.getElementById('panelContent');
+        const icon = document.getElementById('toggleIcon');
+        if (content.classList.contains('collapsed')) {
+            content.classList.remove('collapsed');
+            icon.textContent = '▼';
+        } else {
+            content.classList.add('collapsed');
+            icon.textContent = '▲';
+        }
+    };
+    
+    // Инициализация
+    ymaps.ready(() => {
+        myMap = new ymaps.Map('map', {
+            center: [55.76, 37.64],
+            zoom: 10,
+            controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+        });
+        myMap.behaviors.enable(['drag', 'scrollZoom', 'dblClickZoom', 'multiTouch']);
+        
+        setupFileUpload(myMap);
+        setupGeolocation();
+        
+        // Автоматическое сканирование при загрузке
+        setTimeout(() => fullScan(true), 500);
+    });
+</script>
+</body>
+</html>
