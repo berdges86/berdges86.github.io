@@ -181,7 +181,6 @@
         <div id="layersList"></div>
         <div id="statusMsg" class="status"></div>
         <div class="help-text">
-            ✅ При загрузке страницы ищет: data.json, numbered_points.geojson, points.geojson<br>
             🔍 Кнопка «Сканировать» ищет ВСЕ .geojson/.json файлы в папке<br>
             🔄 Если координаты отображаются неправильно — нажмите «Инверсия XY»<br>
             📍 Кнопка 🤖 — ваше местоположение
@@ -439,7 +438,7 @@
     
     // 2. Запасной вариант: пробуем известные имена файлов
     function tryKnownFiles() {
-        const known = ['numbered_points.geojson', 'data.json', 'points.geojson', 'map.geojson', 'numbered_points.json'];
+        const known = ['numbered_points.geojson', 'data.json', 'points.geojson', 'map.geojson', 'numbered_points.json', 'ml_planner_tl_barrier_country.geojson', 'ml_planner_tl_barrier_country_2.geojson'];
         let loaded = 0;
         known.forEach(filename => {
             $.ajax({
