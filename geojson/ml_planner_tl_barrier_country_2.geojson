@@ -69,6 +69,7 @@
     {"type": "Feature", "properties": {"id": 66, "name": "66", "title": "Point 66"}, "geometry": {"type": "Point", "coordinates": [37.583483, 55.731881]}},
     {"type": "Feature", "properties": {"id": 67, "name": "67", "title": "Point 67"}, "geometry": {"type": "Point", "coordinates": [37.585222, 55.732436]}},
     {"type": "Feature", "properties": {"id": 68, "name": "68", "title": "Point 68"}, "geometry": {"type": "Point", "coordinates": [37.586141, 55.732521]}},
-    {"type": "Feature", "properties": {"id": 69, "name": "69", "title": "Point 69"}, "geometry": {"type": "Point", "coordinates": [37.587309, 55.733034]}}
+    {"type": "Feature", "properties": {"id": 69, "name": "69", "title": "Point 69"}, "geometry": {"type": "Point", "coordinates": [37.587309, 55.733034]}},
+    {"type": "Feature", "properties": {"id": 70, "name": "70", "title": "Point 70"}, "geometry": {"type": "Point", "coordinates": [37.585919, 55.735186]}}
   ]
 }
