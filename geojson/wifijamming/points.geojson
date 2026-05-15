@@ -1,0 +1,221 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "id": 1,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.583230, 55.736521]
+      },
+      "properties": {
+        "name": "Точка 1",
+        "description": "Координата 1"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 2,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.583275, 55.736489]
+      },
+      "properties": {
+        "name": "Точка 2",
+        "description": "Координата 2"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 3,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.583186, 55.736545]
+      },
+      "properties": {
+        "name": "Точка 3",
+        "description": "Координата 3"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 4,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.582274, 55.736802]
+      },
+      "properties": {
+        "name": "Точка 4",
+        "description": "Координата 4"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 5,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.584202, 55.737688]
+      },
+      "properties": {
+        "name": "Точка 5",
+        "description": "Координата 5"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 6,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.581097, 55.737138]
+      },
+      "properties": {
+        "name": "Точка 6",
+        "description": "Координата 6"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 7,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.573841, 55.733176]
+      },
+      "properties": {
+        "name": "Точка 7",
+        "description": "Координата 7"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 8,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.568938, 55.730735]
+      },
+      "properties": {
+        "name": "Точка 8",
+        "description": "Координата 8"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 9,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.569544, 55.731013]
+      },
+      "properties": {
+        "name": "Точка 9",
+        "description": "Координата 9"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 10,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.568249, 55.730460]
+      },
+      "properties": {
+        "name": "Точка 10",
+        "description": "Координата 10"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 11,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.569413, 55.731271]
+      },
+      "properties": {
+        "name": "Точка 11",
+        "description": "Координата 11"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 12,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.567952, 55.730634]
+      },
+      "properties": {
+        "name": "Точка 12",
+        "description": "Координата 12"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 13,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.578257, 55.731255]
+      },
+      "properties": {
+        "name": "Точка 13",
+        "description": "Координата 13"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 14,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.578575, 55.731091]
+      },
+      "properties": {
+        "name": "Точка 14",
+        "description": "Координата 14"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 15,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.578221, 55.731088]
+      },
+      "properties": {
+        "name": "Точка 15",
+        "description": "Координата 15"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 16,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.578510, 55.730996]
+      },
+      "properties": {
+        "name": "Точка 16",
+        "description": "Координата 16"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 17,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.577100, 55.733223]
+      },
+      "properties": {
+        "name": "Точка 17",
+        "description": "Координата 17"
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 18,
+      "geometry": {
+        "type": "Point",
+        "coordinates": [37.573475, 55.729523]
+      },
+      "properties": {
+        "name": "Точка 18",
+        "description": "Координата 18"
+      }
+    }
+  ]
+}
