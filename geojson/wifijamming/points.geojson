@@ -23,6 +23,7 @@
     {"type": "Feature", "id": 20, "geometry": {"type": "Point", "coordinates": [37.578862, 55.735128]}, "properties": {}},
     {"type": "Feature", "id": 21, "geometry": {"type": "Point", "coordinates": [37.578517, 55.734960]}, "properties": {}},
     {"type": "Feature", "id": 22, "geometry": {"type": "Point", "coordinates": [37.571753, 55.740564]}, "properties": {}},
-    {"type": "Feature", "id": 23, "geometry": {"type": "Point", "coordinates": [37.573439, 55.742439]}, "properties": {}}
+    {"type": "Feature", "id": 23, "geometry": {"type": "Point", "coordinates": [37.573439, 55.742439]}, "properties": {}},
+    {"type": "Feature", "id": 24, "geometry": {"type": "Point", "coordinates": [37.571985, 55.730200]}, "properties": {}}
   ]
 }
