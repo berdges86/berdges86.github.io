@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>МЕМНЫЙ ГЕНЕРАТОР | JSON + стили 32x</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&family=Space+Mono:wght@400;700&family=Press+Start+2P&family=Rubik+Glitch&family=VT323&family=Orbitron:wght@400;900&family=Chakra+Petch:wght@400;700&family=Silkscreen&family=Fredoka+One&family=Monoton&family=Bebas+Neue&family=Courier+Prime:wght@400;700&family=UnifrakturMaguntia&family=Major+Mono+Display&family=DotGothic16&family=Train+One&family=Zen+Dots&family=Syne+Mono&family=Turret+Road&family=Black+Ops+One&family=Gasoek+One&family=Bruno+Ace&family=Play&family=Righteous&family=Jersey+15&family=Micro+5&family=Sixtyfour&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; user-select: none; }
+        body { width: 100vw; height: 100vh; overflow: hidden; transition: all 0.2s; }
+        .center { position: relative; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; text-align: center; }
+        .content { max-width: 88vw; max-height: 88vh; }
+        .phrase-text {
+            font-size: clamp(1.4rem, 5vw, 3rem);
+            line-height: 1.4;
+            font-weight: bold;
+            padding: 1.5rem 2.2rem;
+            display: inline-block;
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .image-box img { max-width: 85vw; max-height: 80vh; object-fit: contain; border-radius: 16px; box-shadow: 0 20px 40px rgba(0,0,0,0.5); }
+        @keyframes fadeInUp { 0% { opacity: 0; transform: translateY(24px) scale(0.94); filter: blur(10px); } 100% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } }
+        @keyframes fadeOutDown { 0% { opacity: 1; transform: translateY(0) scale(1); filter: blur(0); } 100% { opacity: 0; transform: translateY(-24px) scale(0.94); filter: blur(8px); } }
+        .animate-in { animation: fadeInUp 0.55s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        .animate-out { animation: fadeOutDown 0.4s ease forwards; }
+    </style>
+</head>
+<body>
+<div class="center" id="appRoot"><div class="content" id="dynamicContent"></div></div>
+<script>
+    const IMAGE_COUNT = 32, DISPLAY_SEC = 4;
+    let currentImageIndex = 1, remainingPhrases = [], originalPhrases = [], currentTimeout = null, currentDisplayMode = 'phrase';
+    const dynamicDiv = document.getElementById('dynamicContent');
+    
+    // ---------- ВСТРОЕННЫЙ ЗАПАС (только если JSON не загрузится) ----------
+    const FALLBACK_PHRASES = [
+        "Товарищи! реализация намеченных планов играет важную роль в формировании неношеных детских ботиночек.",
+        "С другой стороны, волчья иерархия в стае требует от нас анализа постоянного АУФ-сопровождения.",
+        "Равным образом отсутствие денег при наличии желания способствует философии Джейсона Стетхема.",
+        "Не следует забывать, что молчаливое мужское переглядывание позволяет выполнить систему «живу как карта ляжет».",
+        "Таким образом, твой внутренний слоняра обеспечивает участие в формировании генерации окаков.",
+        "Повседневная практика показывает, что выход за хлебом без возвращения создаёт условия для удаления соцсетей.",
+        "Значимость проблем очевидна: «я у мамы волк» влечёт ком-танцен-их-виль-нихт-подход.",
+        "Разнообразный опыт просмотра мемов в 3 ночи представляет эксперимент бомбардиро-крокодило-методологии.",
+        "Задача организации — твоя попытка встать с дивана позволяет оценить держание себя без денег.",
+        "Идейные соображения пролитого пива требуют уточнения границ между грустным Хемингуэем и брутальным АУФ.",
+        "Коллеги, прошу заметить: отсутствие свежего бекапа в пятницу ставит вопрос о гойде как инструменте коммуникации.",
+        "Как справедливо отмечалось, установка Телеграма после удаления открывает цикл «скачал-удалил-скачал».",
+        "Анализ показывает, что ежевечернее «окно, дым, 3 часа ночи» выступает драйвером меланхолии с дошиком.",
+        "В рамках стратегического планирования культ «нашего слоняры» инициирует бомбардирование крокодило.",
+        "Консенсус: размещение серого волка на аватарку недостаточно для превращения в альфача.",
+        "Дискуссионным остаётся вопрос: способность отличить нормиса от скуфа определяет твоё место в иерархии кринжа."
+    ];
+    
+    // 32 стиля (полные, с эффектами)
+    const styleClasses = [
+        'style-ppt97', 'style-cyberpunk', 'style-vhs', 'style-win95', 'style-matrix', 'style-oldtv',
+        'style-vaporwave', 'style-soviet', 'style-pixelgb', 'style-gazeta', 'style-lcd', 'style-anime90s',
+        'style-bauhaus', 'style-glass', 'style-dos', 'style-brokenfilm', 'style-grunge', 'style-teletext',
+        'style-postmark', 'style-fallout', 'style-startrek', 'style-zxspectrum', 'style-glitter2000',
+        'style-geocities', 'style-cinema', 'style-hacker', 'style-typography20s', 'style-discord',
+        'style-retroradio', 'style-3dstudio', 'style-banner2000', 'style-comic'
+    ];
+    let currentStyleClass = '';
+    function applyRandomStyle() {
+        if (currentStyleClass) document.body.classList.remove(currentStyleClass);
+        currentStyleClass = styleClasses[Math.floor(Math.random() * styleClasses.length)];
+        document.body.classList.add(currentStyleClass);
+    }
+    
+    // ---------- ЗАГРУЗКА JSON (приоритет) ----------
+    async function loadPhrases() {
+        try {
+            const response = await fetch('phrases.json');
+            if (response.ok) {
+                const data = await response.json();
+                // Поддерживаем два формата: { "phrases": [...] } или просто [...]
+                if (data.phrases && Array.isArray(data.phrases) && data.phrases.length > 0) {
+                    originalPhrases = [...data.phrases];
+                    console.log(`✅ Загружено ${originalPhrases.length} фраз из phrases.json`);
+                } else if (Array.isArray(data) && data.length > 0) {
+                    originalPhrases = [...data];
+                    console.log(`✅ Загружено ${originalPhrases.length} фраз из phrases.json (массив)`);
+                } else {
+                    throw new Error('JSON не содержит массив phrases');
+                }
+            } else {
+                throw new Error('файл phrases.json не найден');
+            }
+        } catch (e) {
+            console.warn(`⚠️ Не удалось загрузить phrases.json: ${e.message}. Использую встроенные фразы (${FALLBACK_PHRASES.length} шт.)`);
+            originalPhrases = [...FALLBACK_PHRASES];
+        }
+        
+        if (!originalPhrases.length) {
+            console.error("❌ Нет фраз вообще! Добавьте phrases.json или встроенные.");
+            originalPhrases = ["Нет фраз. Проверь phrases.json"];
+        }
+        resetPhraseQueue();
+    }
+    
+    function resetPhraseQueue() {
+        remainingPhrases = [...originalPhrases];
+        for (let i = remainingPhrases.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [remainingPhrases[i], remainingPhrases[j]] = [remainingPhrases[j], remainingPhrases[i]];
+        }
+    }
+    
+    function getNextUniquePhrase() {
+        if (remainingPhrases.length === 0) resetPhraseQueue();
+        return remainingPhrases.shift();
+    }
+    
+    // ---------- ОСНОВНОЙ ЦИКЛ ----------
+    function showPhrase() {
+        applyRandomStyle();
+        const phrase = getNextUniquePhrase();
+        dynamicDiv.innerHTML = `<div class="phrase-text animate-in" id="animatedElem">${escapeHtml(phrase)}</div>`;
+        if (currentTimeout) clearTimeout(currentTimeout);
+        currentTimeout = setTimeout(() => {
+            if (currentDisplayMode === 'phrase') animateOutAndSwitchToImage();
+        }, DISPLAY_SEC * 1000);
+        currentDisplayMode = 'phrase';
+    }
+    
+    function animateOutAndSwitchToImage() {
+        const elem = document.getElementById('animatedElem');
+        if (elem) {
+            elem.classList.remove('animate-in');
+            elem.classList.add('animate-out');
+            setTimeout(() => showImage(), 400);
+        } else showImage();
+    }
+    
+    function showImage() {
+        const imgPath = `${currentImageIndex}.jpg`;
+        dynamicDiv.innerHTML = `<div class="image-box animate-in" id="animatedImg"><img src="${imgPath}" alt="meme ${currentImageIndex}" onerror="this.onerror=null; this.style.border='2px solid red'; this.alt='❌ ${imgPath} не найден'"></div>`;
+        currentImageIndex++;
+        if (currentImageIndex > IMAGE_COUNT) currentImageIndex = 1;
+        currentDisplayMode = 'image';
+        if (currentTimeout) clearTimeout(currentTimeout);
+        currentTimeout = setTimeout(() => {
+            if (currentDisplayMode === 'image') animateOutAndSwitchToPhrase();
+        }, DISPLAY_SEC * 1000);
+    }
+    
+    function animateOutAndSwitchToPhrase() {
+        const imgDiv = document.getElementById('animatedImg');
+        if (imgDiv) {
+            imgDiv.classList.remove('animate-in');
+            imgDiv.classList.add('animate-out');
+            setTimeout(() => showPhrase(), 400);
+        } else showPhrase();
+    }
+    
+    function escapeHtml(str) {
+        return str.replace(/[&<>]/g, m => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[m]));
+    }
+    
+    // ---------- ВСТАВКА 32 СТИЛЕЙ ----------
+    function injectStyles() {
+        const styleTag = document.createElement('style');
+        styleTag.textContent = `
+            .style-ppt97 { background: linear-gradient(145deg, #0a2f6c, #041a3a); font-family: 'Times New Roman', serif; }
+            .style-ppt97 .phrase-text { background: #fff2bf; color: #0a2f6c; border: 5px solid #ffcc33; box-shadow: 12px 12px 0 rgba(0,0,0,0.4); text-transform: uppercase; letter-spacing: 2px; }
+            .style-cyberpunk { background: #0b0a1a; font-family: 'Orbitron', monospace; position: relative; }
+            .style-cyberpunk::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,255,255,0.1) 0px, rgba(0,255,255,0.1) 1px, transparent 1px, transparent 6px); pointer-events: none; }
+            .style-cyberpunk .phrase-text { background: rgba(0,0,0,0.8); color: #0ff; text-shadow: 0 0 8px #0ff, 0 0 20px #f0f; border: 2px solid #f0f; box-shadow: 0 0 20px #f0f; backdrop-filter: blur(8px); animation: glitch 0.12s infinite alternate; }
+            @keyframes glitch { 0% { transform: skew(0deg); } 100% { transform: skew(0.8deg); text-shadow: -2px 0 cyan, 2px 0 magenta; } }
+            .style-vhs { background: #111; font-family: 'Courier Prime', monospace; position: relative; }
+            .style-vhs::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(0deg, rgba(0,0,0,0.4) 0px, rgba(0,0,0,0.4) 2px, transparent 2px, transparent 8px); pointer-events: none; }
+            .style-vhs .phrase-text { background: #000000aa; color: #ddd; text-shadow: -2px 0 red, 2px 0 cyan; border-left: 6px solid red; border-right: 6px solid cyan; animation: vhs-shake 0.15s infinite; }
+            @keyframes vhs-shake { 0% { transform: translate(0); } 25% { transform: translate(-1px, 0.5px); } 75% { transform: translate(1px, -0.5px); } }
+            .style-win95 { background: #3a6ea5; font-family: 'Inter', sans-serif; }
+            .style-win95 .phrase-text { background: #c0c0c0; color: #000; border: 3px solid #fff; box-shadow: inset -2px -2px 0 #0a0a0a, inset 2px 2px 0 #fff; font-weight: bold; }
+            .style-matrix { background: #000; font-family: 'Space Mono', monospace; overflow: hidden; position: relative; }
+            .style-matrix::after { content: "010010 101001 011011 100100"; position: absolute; bottom: 10px; left: 10px; color: #0f0; opacity: 0.2; font-size: 12px; white-space: pre; }
+            .style-matrix .phrase-text { background: #000000aa; color: #0f0; text-shadow: 0 0 4px #0f0; border: 1px solid #0f0; }
+            .style-oldtv { background: #1a1a1a; font-family: 'VT323', monospace; position: relative; }
+            .style-oldtv::before { content: ""; position: absolute; inset: 0; background: repeating-radial-gradient(circle at 30% 40%, rgba(0,0,0,0.3), #000 2px); pointer-events: none; }
+            .style-oldtv .phrase-text { background: #111; color: #8cff9e; border: 2px solid #4a6; box-shadow: inset 0 0 50px #000, 0 0 10px #0f0; }
+            .style-vaporwave { background: linear-gradient(45deg, #ff69b4, #b883ff, #00d4ff); background-size: 200% 200%; animation: wave 8s ease infinite; font-family: 'Silkscreen', monospace; }
+            @keyframes wave { 0% { background-position: 0% 0%; } 50% { background-position: 100% 100%; } 100% { background-position: 0% 0%; } }
+            .style-vaporwave .phrase-text { background: #000000aa; color: #ffd0f0; text-shadow: 3px 3px 0 cyan, -3px -3px 0 magenta; border: 1px solid cyan; backdrop-filter: blur(6px); }
+            .style-soviet { background: #b32d2d; font-family: 'Bebas Neue', sans-serif; position: relative; }
+            .style-soviet::before { content: "★"; position: absolute; top: 20px; left: 20px; font-size: 48px; color: gold; opacity: 0.3; }
+            .style-soviet .phrase-text { background: #f5c542; color: #8b0000; border: 6px double #ffd966; text-transform: uppercase; letter-spacing: 4px; }
+            .style-pixelgb { background: #93cb6b; font-family: 'Press Start 2P', monospace; image-rendering: crisp-edges; }
+            .style-pixelgb .phrase-text { background: #c8e6a5; color: #1e3a0c; border: 6px solid #315c1a; box-shadow: 6px 6px 0 #1e3a0c; }
+            .style-gazeta { background: #e1d6bb; font-family: 'Courier Prime', serif; position: relative; }
+            .style-gazeta::before { content: ""; position: absolute; inset: 0; background: repeating-linear-gradient(45deg, rgba(0,0,0,0.03) 0px, rgba(0,0,0,0.03) 2px, transparent 2px, transparent 8px); }
+            .style-gazeta .phrase-text { background: #fef7e0; color: #32281c; border-bottom: 3px double #000; box-shadow: 8px 8px 0 rgba(0,0,0,0.05); }
+            .style-lcd { background: #0f2f1a; font-family: 'DotGothic16', monospace; }
+            .style-lcd .phrase-text { background: #204e2c; color: #b0ffa0; border: 2px inset #6f9e6f; letter-spacing: 3px; text-shadow: 0 0 2px #8aff8a; }
+            .style-anime90s { background: #1a1128; font-family: 'Fredoka One', sans-serif; }
+            .style-anime90s .phrase-text { background: #000000aa; color: #ffec80; border-bottom: 5px solid #ff3399; text-transform: uppercase; text-shadow: 2px 2px 0 #7a0044; }
+            .style-bauhaus { background: #e30613; font-family: 'Major Mono Display', monospace; }
+            .style-bauhaus .phrase-text { background: #ffcd00; color: #000; border-left: 16px solid #000; border-right: 4px solid #000; font-weight: 900; }
+            .style-glass { background: radial-gradient(circle at 30% 20%, #b0c4ff, #2f4f7f); font-family: 'Inter', sans-serif; }
+            .style-glass .phrase-text { background: rgba(255,255,245,0.2); backdrop-filter: blur(20px); color: white; border: 1px solid rgba(255,255,255,0.5); border-radius: 80px; box-shadow: 0 12px 32px rgba(0,0,0,0.3); }
+            .style-dos { background: #000; font-family: 'Courier New', monospace; }
+            .style-dos .phrase-text { background: #000; color: #0c0; border-left: 4px solid #0c0; text-align: left; }
+            .style-brokenfilm { background: #2a2a2a; font-family: 'Courier Prime', monospace; filter: contrast(1.3) brightness(0.85); }
+            .style-brokenfilm .phrase-text { background: #ffffffdd; color: #000; mix-blend-mode: difference; transform: rotate(-0.8deg) skew(1.5deg); border: 2px solid white; }
+            .style-grunge { background: #735e4c; font-family: 'Turret Road', monospace; }
+            .style-grunge .phrase-text { background: #f0e0b0; color: #3a2a1a; transform: rotate(-1deg) scale(0.98); border: 3px dashed #3a2a1a; }
+            .style-teletext { background: #0a1c6b; font-family: 'VT323', monospace; }
+            .style-teletext .phrase-text { background: #001c5a; color: #ffffa0; border: 1px solid #6bf; letter-spacing: 1px; }
+            .style-postmark { background: #d8cbb4; font-family: 'UnifrakturMaguntia', serif; }
+            .style-postmark .phrase-text { background: #fff0c0; color: #5a3e1a; border: 8px dotted #b87c4f; border-radius: 32px; }
+            .style-fallout { background: #1e2a1a; font-family: 'VT323', monospace; }
+            .style-fallout .phrase-text { background: #0c301a; color: #55ff77; border: 2px solid #55ff77; border-radius: 24px; text-shadow: 0 0 5px #2eff6e; box-shadow: inset 0 0 20px rgba(0,255,0,0.2); }
+            .style-startrek { background: #012b44; font-family: 'Orbitron', monospace; }
+            .style-startrek .phrase-text { background: #115577cc; color: #bbf5ff; border: 1px solid cyan; border-radius: 16px; padding-left: 32px; padding-right: 32px; }
+            .style-zxspectrum { background: #0000aa; font-family: 'Press Start 2P', monospace; }
+            .style-zxspectrum .phrase-text { background: #ffcc00; color: #0000aa; border: 3px double #ff00ff; }
+            .style-glitter2000 { background: linear-gradient(135deg, #ff99cc, #ffcc99); font-family: 'Comic Sans MS', cursive; }
+            .style-glitter2000 .phrase-text { background: #fff0c0cc; color: #cc0099; border: 4px ridge gold; border-radius: 60px; box-shadow: 0 0 0 3px white, 0 5px 15px black; }
+            .style-geocities { background: #ffff66; font-family: 'Comic Sans MS', monospace; }
+            .style-geocities .phrase-text { background: #ff00ff; color: #ffff00; border: 6px dotted red; animation: blinkGeo 0.5s step-start infinite; }
+            @keyframes blinkGeo { 50% { border-color: cyan; background: #ff66ff; } }
+            .style-cinema { background: #000; font-family: 'Bebas Neue', sans-serif; }
+            .style-cinema .phrase-text { background: #000000cc; color: #f5e6d3; border-top: 3px solid #ffcc88; border-bottom: 3px solid #ffcc88; letter-spacing: 4px; text-transform: uppercase; }
+            .style-hacker { background: #030c0c; font-family: 'Space Mono', monospace; }
+            .style-hacker .phrase-text { background: #000; color: #0f0; border-left: 5px solid #0f0; text-shadow: 0 0 2px #0f0; }
+            .style-typography20s { background: #f5e6c8; font-family: 'Courier Prime', serif; }
+            .style-typography20s .phrase-text { background: none; color: #2b241c; border-bottom: 4px solid #4a3a28; font-size: 2.2rem; font-weight: bold; }
+            .style-discord { background: #1e1f22; font-family: 'Inter', sans-serif; }
+            .style-discord .phrase-text { background: #2b2d31; color: #dbdee1; border-radius: 36px; box-shadow: 0 8px 20px black; }
+            .style-retroradio { background: #4f3a24; font-family: 'Chakra Petch', monospace; }
+            .style-retroradio .phrase-text { background: #ddbb88; color: #2f2418; border-radius: 100px; border: 3px solid #ab8a54; box-shadow: inset 0 0 10px #ab8a54, 6px 6px 0 #2f2418; }
+            .style-3dstudio { background: radial-gradient(circle at 30% 40%, #7000a0, #1a0030); font-family: 'Black Ops One', sans-serif; }
+            .style-3dstudio .phrase-text { background: #ffcc33cc; color: #2d004b; text-shadow: 4px 4px 0 #ff9933; border: 2px solid gold; transform: skew(-2deg); }
+            .style-banner2000 { background: #ff3333; font-family: 'Impact', sans-serif; animation: flashBg 0.4s infinite alternate; }
+            @keyframes flashBg { 0% { background: #ff3333; } 100% { background: #ff8800; } }
+            .style-banner2000 .phrase-text { background: #ffff00; color: #ff0000; border: 6px ridge white; animation: bounceBanner 0.2s infinite alternate; }
+            @keyframes bounceBanner { 0% { transform: scale(1); } 100% { transform: scale(1.03); } }
+            .style-comic { background: #ffdd88; font-family: 'Fredoka One', cursive; position: relative; }
+            .style-comic::before { content: ""; position: absolute; inset: 0; background: radial-gradient(circle at 20% 30%, rgba(0,0,0,0.1) 1px, transparent 1px); background-size: 8px 8px; pointer-events: none; }
+            .style-comic .phrase-text { background: white; color: #d00000; border: 4px solid black; border-radius: 48px; box-shadow: 12px 12px 0 rgba(0,0,0,0.2); transform: rotate(0.8deg); }
+        `;
+        document.head.appendChild(styleTag);
+    }
+    
+    // ---------- СТАРТ ----------
+    (async function init() {
+        injectStyles();
+        await loadPhrases();
+        applyRandomStyle();
+        showPhrase();
+    })();
+</script>
+</body>
+</html>
