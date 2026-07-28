@@ -1,0 +1,567 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Классификация инцидента · полная</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .chat-card {
+            max-width: 820px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.12);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 94vh;
+            max-height: 880px;
+        }
+        .chat-header {
+            background: #0b1b33;
+            color: white;
+            padding: 14px 24px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-shrink: 0;
+        }
+        .chat-header h2 { font-weight: 600; font-size: 17px; }
+        .chat-header small {
+            opacity: 0.6;
+            font-size: 11px;
+            margin-left: auto;
+            background: rgba(255,255,255,0.08);
+            padding: 4px 14px;
+            border-radius: 40px;
+        }
+        .chat-header .step {
+            background: rgba(255,255,255,0.15);
+            padding: 4px 12px;
+            border-radius: 40px;
+            font-size: 12px;
+        }
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 14px 18px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            background: #fafcff;
+        }
+        .msg {
+            max-width: 94%;
+            padding: 11px 16px;
+            border-radius: 20px;
+            line-height: 1.5;
+            font-size: 14px;
+            animation: fadeUp 0.2s ease;
+            word-break: break-word;
+        }
+        .msg-bot { background: #eef3f9; color: #0b1b33; align-self: flex-start; border-bottom-left-radius: 6px; }
+        .msg-user { background: #0b1b33; color: white; align-self: flex-end; border-bottom-right-radius: 6px; }
+        .msg-report {
+            align-self: stretch;
+            background: #f8faff;
+            border: 2px solid #cbdbe9;
+            border-radius: 24px;
+            padding: 18px 20px;
+            margin: 4px 0;
+            animation: fadeUp 0.4s ease;
+        }
+        .msg-report h3 {
+            font-size: 13px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #3d5775;
+            margin-bottom: 10px;
+            border-bottom: 2px solid #e6edf4;
+            padding-bottom: 6px;
+        }
+        .msg-report .row {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            font-size: 13px;
+            border-bottom: 1px solid #f0f4fa;
+        }
+        .msg-report .row .label { color: #3d5775; font-weight: 500; }
+        .msg-report .row .value { color: #0b1b33; font-weight: 600; text-align: right; max-width: 60%; }
+        .msg-report .verdict-box {
+            margin-top: 12px;
+            padding: 12px 16px;
+            border-radius: 16px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 18px;
+        }
+        .verdict-incident { background: #fef2f2; color: #991b1b; border: 2px solid #b91c1c; }
+        .verdict-notincident { background: #ecfdf5; color: #065f46; border: 2px solid #059669; }
+        .verdict-unknown { background: #f9fafb; color: #374151; border: 2px solid #6b7280; }
+        .msg-report .footnote {
+            font-size: 11px;
+            color: #6f8aaa;
+            margin-top: 8px;
+            text-align: center;
+            border-top: 1px solid #e6edf4;
+            padding-top: 8px;
+        }
+        @keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+        .options {
+            padding: 10px 18px 16px;
+            background: white;
+            border-top: 1px solid #e6edf4;
+            flex-shrink: 0;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .options button {
+            background: #f0f4fe;
+            border: 2px solid transparent;
+            padding: 8px 16px;
+            border-radius: 60px;
+            font-weight: 600;
+            font-size: 12px;
+            color: #0b1b33;
+            cursor: pointer;
+            flex: 1 0 auto;
+            transition: 0.1s;
+            text-align: center;
+            min-width: 50px;
+        }
+        .options button:hover { background: #dce6f5; transform: scale(0.97); }
+        .options button:active { transform: scale(0.94); }
+        .options button.btn-yes { background: #d1e7dd; color: #0b5e42; }
+        .options button.btn-yes:hover { background: #b7d9cb; }
+        .options button.btn-no { background: #f8d7da; color: #842029; }
+        .options button.btn-no:hover { background: #f1c4c8; }
+        .options button.btn-reset { background: #e6edf4; color: #1f3a57; flex: 0 0 auto; }
+        .options button.btn-choice { background: #e0e7ff; color: #3730a3; }
+        .options button.btn-choice:hover { background: #c7d2fe; }
+        @media (max-width: 500px) {
+            .chat-card { height: 96vh; max-height: 100vh; border-radius: 20px; }
+            .messages { padding: 10px 12px; gap: 6px; }
+            .msg { font-size: 13px; padding: 9px 12px; max-width: 96%; }
+            .msg-report { padding: 12px 14px; }
+            .msg-report .row { font-size: 12px; }
+            .msg-report .verdict-box { font-size: 16px; padding: 10px; }
+            .options { padding: 8px 12px 12px; gap: 5px; }
+            .options button { font-size: 11px; padding: 7px 10px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="chat-card" id="app">
+    <div class="chat-header">
+        <span>📋</span>
+        <h2>Классификация инцидента</h2>
+        <span class="step" id="stepCounter">шаг 1</span>
+        <small>все сценарии</small>
+    </div>
+
+    <div class="messages" id="messages">
+        <div class="msg msg-bot">🚦 Запуск полной классификации.<br>Выбирайте варианты — система определит: <strong>ИНЦИДЕНТ</strong> или <strong>НЕ ИНЦИДЕНТ</strong>.</div>
+    </div>
+
+    <div class="options" id="options"></div>
+</div>
+
+<script>
+    (function() {
+        // ========== СОСТОЯНИЕ ==========
+        let state = {
+            currentNode: 'start',
+            step: 1,
+            report: {
+                участник_1: 'Водитель ТС (испытатель)',
+                участник_2: '—',
+                тип_тс: '—',
+                место: '—',
+                дорога: '—',
+                погода: '—',
+                светофор: '—',
+                знаки: '—',
+                разметка: '—',
+                маневр: '—',
+                переход: '—',
+                нарушение_пдд: '—',
+                технеисправность: '—',
+                крайняя_необходимость: '—',
+                задание_испытаний: '—',
+                вина_водителя: '—',
+                итог: '—',
+                код: '—',
+                обоснование: '—'
+            }
+        };
+
+        const messagesEl = document.getElementById('messages');
+        const optionsEl = document.getElementById('options');
+        const stepCounter = document.getElementById('stepCounter');
+
+        // ========== ДЕРЕВО ==========
+        const tree = {
+
+            // ------ СТАРТ: ВТОРОЙ УЧАСТНИК ------
+            start: {
+                id: 'start',
+                text: '🚗 С кем произошло событие (контакт / опасное сближение)?',
+                options: [
+                    { id: 'q_type_pedestrian', label: 'Пешеход' },
+                    { id: 'q_type_car', label: 'Легковой автомобиль' },
+                    { id: 'q_type_truck', label: 'Грузовой автомобиль' },
+                    { id: 'q_type_bus', label: 'Автобус / маршрутка' },
+                    { id: 'q_type_moto', label: 'Мотоцикл / скутер' },
+                    { id: 'q_type_bicycle', label: 'Велосипед' },
+                    { id: 'q_type_horse', label: 'Гужевая повозка' },
+                    { id: 'q_type_animal', label: 'Животное' },
+                    { id: 'q_type_tractor', label: 'Спецтехника / трактор' },
+                    { id: 'q_type_rail', label: 'Ж/Д транспорт (поезд, трамвай)' },
+                    { id: 'q_type_obstacle', label: 'Препятствие (столб, дерево, ограждение)' }
+                ],
+                onAnswer: (choice, label) => { state.report.участник_2 = label; }
+            },
+
+            // ------ ТИП ТС (для второго участника) ------
+            q_type_car: { id: 'q_type_car', text: '🚘 Тип второго ТС?', options: [{id:'q_place_car',label:'Легковой'},{id:'q_place_car',label:'Спорткар'},{id:'q_place_car',label:'Электромобиль'},{id:'q_place_car',label:'Микроавтобус'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_truck: { id: 'q_type_truck', text: '🚛 Тип грузового ТС?', options: [{id:'q_place_truck',label:'Фура'},{id:'q_place_truck',label:'Самосвал'},{id:'q_place_truck',label:'Рефрижератор'},{id:'q_place_truck',label:'Автовоз'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_bus: { id: 'q_type_bus', text: '🚌 Тип автобуса?', options: [{id:'q_place_bus',label:'Городской'},{id:'q_place_bus',label:'Междугородний'},{id:'q_place_bus',label:'Школьный'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_moto: { id: 'q_type_moto', text: '🏍️ Тип мотоцикла?', options: [{id:'q_place_moto',label:'Классический'},{id:'q_place_moto',label:'Спортбайк'},{id:'q_place_moto',label:'Круизер'},{id:'q_place_moto',label:'Скутер'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_bicycle: { id: 'q_type_bicycle', text: '🚲 Тип велосипеда?', options: [{id:'q_place_bicycle',label:'Городской'},{id:'q_place_bicycle',label:'Спортивный'},{id:'q_place_bicycle',label:'Электрический'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_horse: { id: 'q_type_horse', text: '🐴 Гужевая повозка', options: [{id:'q_place_horse',label:'С одной лошадью'},{id:'q_place_horse',label:'С двумя лошадьми'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_animal: { id: 'q_type_animal', text: '🐕 Животное', options: [{id:'q_place_animal',label:'Дикое'},{id:'q_place_animal',label:'Домашнее (с хозяином)'},{id:'q_place_animal',label:'Бродячее'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_tractor: { id: 'q_type_tractor', text: '🚜 Спецтехника', options: [{id:'q_place_tractor',label:'Трактор'},{id:'q_place_tractor',label:'Экскаватор'},{id:'q_place_tractor',label:'Бульдозер'},{id:'q_place_tractor',label:'Кран'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_rail: { id: 'q_type_rail', text: '🚆 Ж/Д транспорт', options: [{id:'q_place_rail',label:'Поезд'},{id:'q_place_rail',label:'Трамвай'},{id:'q_place_rail',label:'Электричка'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_obstacle: { id: 'q_type_obstacle', text: '🧱 Препятствие', options: [{id:'q_place_obstacle',label:'Столб'},{id:'q_place_obstacle',label:'Дерево'},{id:'q_place_obstacle',label:'Ограждение'},{id:'q_place_obstacle',label:'Строительная конструкция'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+            q_type_pedestrian: { id: 'q_type_pedestrian', text: '🚶 Пешеход', options: [{id:'q_place_pedestrian',label:'Взрослый'},{id:'q_place_pedestrian',label:'Ребёнок'},{id:'q_place_pedestrian',label:'Пожилой'}], onAnswer: (c,l)=>{ state.report.тип_тс = l; } },
+
+            // ------ МЕСТО ДЛЯ КАЖДОГО ТИПА ------
+            q_place_car: { id: 'q_place_car', text: '📌 Где произошло событие?', options: [{id:'q_road',label:'Перекрёсток'},{id:'q_road',label:'Прямой участок'},{id:'q_road',label:'Поворот'},{id:'q_road',label:'Парковка'},{id:'q_road',label:'Двор'},{id:'q_road',label:'Мост'},{id:'q_road',label:'Тоннель'},{id:'q_road',label:'Ж/Д переезд'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_truck: { id: 'q_place_truck', text: '📌 Где произошло событие?', options: [{id:'q_road',label:'Перекрёсток'},{id:'q_road',label:'Прямой участок'},{id:'q_road',label:'Парковка'},{id:'q_road',label:'Строительная площадка'},{id:'q_road',label:'Двор'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_bus: { id: 'q_place_bus', text: '📌 Где произошло событие?', options: [{id:'q_road',label:'Остановка'},{id:'q_road',label:'Перекрёсток'},{id:'q_road',label:'Прямой участок'},{id:'q_road',label:'Парковка'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_moto: { id: 'q_place_moto', text: '📌 Где произошло событие?', options: [{id:'q_road',label:'Перекрёсток'},{id:'q_road',label:'Прямой участок'},{id:'q_road',label:'Поворот'},{id:'q_road',label:'Парковка'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_bicycle: { id: 'q_place_bicycle', text: '📌 Где находился велосипедист?', options: [{id:'q_road',label:'Велодорожка'},{id:'q_road',label:'Обочина'},{id:'q_road',label:'Проезжая часть'},{id:'q_road',label:'Тротуар'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_horse: { id: 'q_place_horse', text: '📌 Где двигалась повозка?', options: [{id:'q_road',label:'Обочина'},{id:'q_road',label:'Проезжая часть'},{id:'q_road',label:'Перекрёсток'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_animal: { id: 'q_place_animal', text: '📌 Где находилось животное?', options: [{id:'q_road',label:'Проезжая часть'},{id:'q_road',label:'Обочина'},{id:'q_road',label:'Выбежало внезапно'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_tractor: { id: 'q_place_tractor', text: '📌 Где произошло событие?', options: [{id:'q_road',label:'Строительная площадка'},{id:'q_road',label:'Дорога общего пользования'},{id:'q_road',label:'Перекрёсток'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_rail: { id: 'q_place_rail', text: '📌 Где произошло событие?', options: [{id:'q_road',label:'Ж/Д переезд'},{id:'q_road',label:'Трамвайные пути'},{id:'q_road',label:'Перекрёсток'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_obstacle: { id: 'q_place_obstacle', text: '📌 Где находилось препятствие?', options: [{id:'q_road',label:'Обочина'},{id:'q_road',label:'Проезжая часть'},{id:'q_road',label:'Тротуар'}], onAnswer: (c,l)=>{ state.report.место = l; } },
+            q_place_pedestrian: { id: 'q_place_pedestrian', text: '📌 Где находился пешеход?', options: [
+                {id:'q_road',label:'Тротуар'},
+                {id:'q_road',label:'Обочина'},
+                {id:'q_road',label:'Проезжая часть'},
+                {id:'q_road',label:'Регулируемый пешеходный переход (РПП, со светофором)'},
+                {id:'q_road',label:'Нерегулируемый пешеходный переход (ПП, зебра/знак)'},
+                {id:'q_road',label:'Остановка'}
+            ], onAnswer: (c,l)=>{ state.report.место = l; } },
+
+            // ------ ДОРОЖНЫЕ УСЛОВИЯ ------
+            q_road: {
+                id: 'q_road',
+                text: '🛣️ Дорожное покрытие?',
+                options: [
+                    { id: 'q_road2', label: 'Сухой асфальт' },
+                    { id: 'q_road2', label: 'Мокрый асфальт' },
+                    { id: 'q_road2', label: 'Гололёд / снег' },
+                    { id: 'q_road2', label: 'Грунт / гравий' },
+                    { id: 'q_road2', label: 'Неровная дорога (ямы)' }
+                ],
+                onAnswer: (c,l) => { state.report.дорога = l; }
+            },
+            q_road2: {
+                id: 'q_road2',
+                text: '🌤️ Погода и видимость?',
+                options: [
+                    { id: 'q_road3', label: 'Ясно, хорошая видимость' },
+                    { id: 'q_road3', label: 'Туман' },
+                    { id: 'q_road3', label: 'Дождь' },
+                    { id: 'q_road3', label: 'Снегопад' },
+                    { id: 'q_road3', label: 'Ночь (темнота)' }
+                ],
+                onAnswer: (c,l) => { state.report.погода = l; }
+            },
+            q_road3: {
+                id: 'q_road3',
+                text: '🚦 Светофор?',
+                options: [
+                    { id: 'q_road4', label: 'Светофор работал исправно' },
+                    { id: 'q_road4', label: 'Светофор не работал / мигал жёлтый' },
+                    { id: 'q_road4', label: 'Светофора нет' }
+                ],
+                onAnswer: (c,l) => { state.report.светофор = l; }
+            },
+            q_road4: {
+                id: 'q_road4',
+                text: '📐 Разметка на дороге?',
+                options: [
+                    { id: 'q_road5', label: 'Сплошная линия (1.1)' },
+                    { id: 'q_road5', label: 'Прерывистая линия (1.5)' },
+                    { id: 'q_road5', label: 'Двойная сплошная (1.3)' },
+                    { id: 'q_road5', label: 'Разметка отсутствует' }
+                ],
+                onAnswer: (c,l) => { state.report.разметка = l; }
+            },
+            q_road5: {
+                id: 'q_road5',
+                text: '🔄 Маневр водителя ТС?',
+                options: [
+                    { id: 'q_road6', label: 'Движение прямо' },
+                    { id: 'q_road6', label: 'Поворот налево' },
+                    { id: 'q_road6', label: 'Поворот направо' },
+                    { id: 'q_road6', label: 'Разворот' },
+                    { id: 'q_road6', label: 'Обгон' },
+                    { id: 'q_road6', label: 'Перестроение' },
+                    { id: 'q_road6', label: 'Движение задним ходом' },
+                    { id: 'q_road6', label: 'Остановка / стоянка' }
+                ],
+                onAnswer: (c,l) => { state.report.маневр = l; }
+            },
+            q_road6: {
+                id: 'q_road6',
+                text: '🚦 Относительно пешеходного перехода?',
+                options: [
+                    { id: 'q2', label: 'Вне перехода' },
+                    { id: 'q2', label: 'На регулируемом переходе (РПП, со светофором)' },
+                    { id: 'q2', label: 'На нерегулируемом переходе (ПП, зебра/знак)' },
+                    { id: 'q2', label: 'В зоне перехода (до 5 м)' }
+                ],
+                onAnswer: (c,l) => { state.report.переход = l; }
+            },
+
+            // ------ ОСНОВНОЙ БЛОК ------
+            q2: {
+                id: 'q2',
+                text: '🚨 Нарушение ПДД зафиксировано объективно (видео, протокол, свидетели)?',
+                options: [
+                    { id: 'q3', label: 'Да' },
+                    { id: 'verdict_not_incident_1', label: 'Нет' }
+                ],
+                onAnswer: (c,l) => { state.report.нарушение_пдд = l; }
+            },
+            q3: {
+                id: 'q3',
+                text: '🔧 Технеисправность ТС подтверждена экспертизой?',
+                options: [
+                    { id: 'verdict_not_incident_tech', label: 'Да' },
+                    { id: 'q4', label: 'Нет' }
+                ],
+                onAnswer: (c,l) => { state.report.технеисправность = l; }
+            },
+            q4: {
+                id: 'q4',
+                text: '🛡️ Крайняя необходимость (ст. 2.7 КоАП)?',
+                options: [
+                    { id: 'verdict_not_incident_emergency', label: 'Да' },
+                    { id: 'q5', label: 'Нет' }
+                ],
+                onAnswer: (c,l) => { state.report.крайняя_необходимость = l; }
+            },
+            q5: {
+                id: 'q5',
+                text: '📄 Действовал по письменному заданию испытаний?',
+                options: [
+                    { id: 'verdict_incident_test', label: 'Да' },
+                    { id: 'q6', label: 'Нет' }
+                ],
+                onAnswer: (c,l) => { state.report.задание_испытаний = l; }
+            },
+            q6: {
+                id: 'q6',
+                text: '👤 Водитель нарушил осознанно / по невнимательности?',
+                options: [
+                    { id: 'verdict_incident_driver', label: 'Да' },
+                    { id: 'verdict_not_incident_force', label: 'Нет (вне контроля)' }
+                ],
+                onAnswer: (c,l) => { state.report.вина_водителя = l; }
+            },
+
+            // ========== ВЕРДИКТЫ ==========
+            verdict_not_incident_1: {
+                id: 'verdict_not_incident_1',
+                verdict: { text: 'НЕ ИНЦИДЕНТ', code: 'НИ-1', reason: 'Нарушение ПДД не зафиксировано. Штатная ситуация.' }
+            },
+            verdict_not_incident_tech: {
+                id: 'verdict_not_incident_tech',
+                verdict: { text: 'НЕ ИНЦИДЕНТ', code: 'НИ-2', reason: 'Технеисправность. Ответственность на сервисе/заводе.' }
+            },
+            verdict_not_incident_emergency: {
+                id: 'verdict_not_incident_emergency',
+                verdict: { text: 'НЕ ИНЦИДЕНТ', code: 'НИ-3', reason: 'Крайняя необходимость. Действия водителя оправданы.' }
+            },
+            verdict_not_incident_force: {
+                id: 'verdict_not_incident_force',
+                verdict: { text: 'НЕ ИНЦИДЕНТ', code: 'НИ-4', reason: 'Нарушение вне контроля водителя (форс-мажор).' }
+            },
+            verdict_incident_test: {
+                id: 'verdict_incident_test',
+                verdict: { text: 'ИНЦИДЕНТ', code: 'И-1', reason: 'Нарушение в рамках испытательного задания. Ответственность на руководителе испытаний.' }
+            },
+            verdict_incident_driver: {
+                id: 'verdict_incident_driver',
+                verdict: { text: 'ИНЦИДЕНТ', code: 'И-2', reason: 'Водитель нарушил ПДД. Вина водителя.' }
+            }
+        };
+
+        // ========== ОТРИСОВКА ==========
+        function renderNode(nodeId) {
+            const node = tree[nodeId];
+            if (!node) return;
+            if (node.verdict) { showReport(node.verdict); return; }
+
+            addMessage('bot', node.text);
+            updateStep();
+
+            const btns = [];
+            if (node.options) {
+                node.options.forEach(opt => {
+                    btns.push({ label: opt.label, value: opt.id, className: 'btn-choice' });
+                });
+            }
+            btns.push({ label: '🔄 Заново', value: 'reset', className: 'btn-reset' });
+            renderButtons(btns, nodeId);
+        }
+
+        function renderButtons(btns, nodeId) {
+            optionsEl.innerHTML = '';
+            btns.forEach(b => {
+                const btn = document.createElement('button');
+                btn.textContent = b.label;
+                if (b.className) btn.className = b.className;
+                btn.addEventListener('click', () => {
+                    if (b.value === 'reset') { resetAll(); return; }
+                    handleChoice(nodeId, b.value, b.label);
+                });
+                optionsEl.appendChild(btn);
+            });
+        }
+
+        function handleChoice(nodeId, choice, label) {
+            const node = tree[nodeId];
+            if (!node) return;
+            if (node.onAnswer) node.onAnswer(choice, label);
+
+            addMessage('user', label);
+            state.step++;
+
+            const nextNode = tree[choice];
+            if (nextNode) renderNode(choice);
+            else renderNode('start');
+        }
+
+        function showReport(verdict) {
+            state.report.итог = verdict.text;
+            state.report.код = verdict.code || '—';
+            state.report.обоснование = verdict.reason || '';
+
+            const report = document.createElement('div');
+            report.className = 'msg msg-report';
+
+            let vc = 'verdict-unknown';
+            if (verdict.text.includes('ИНЦИДЕНТ')) vc = 'verdict-incident';
+            else if (verdict.text.includes('НЕ ИНЦИДЕНТ')) vc = 'verdict-notincident';
+
+            const fields = [
+                ['Участник 1', state.report.участник_1],
+                ['Участник 2', state.report.участник_2 || '—'],
+                ['Тип ТС/участника', state.report.тип_тс || '—'],
+                ['Место', state.report.место || '—'],
+                ['Дорожное покрытие', state.report.дорога || '—'],
+                ['Погода / видимость', state.report.погода || '—'],
+                ['Светофор', state.report.светофор || '—'],
+                ['Разметка', state.report.разметка || '—'],
+                ['Маневр водителя', state.report.маневр || '—'],
+                ['Переход', state.report.переход || '—'],
+                ['Нарушение ПДД', state.report.нарушение_пдд || '—'],
+                ['Технеисправность', state.report.технеисправность || '—'],
+                ['Крайняя необходимость', state.report.крайняя_необходимость || '—'],
+                ['Задание испытаний', state.report.задание_испытаний || '—'],
+                ['Вина водителя', state.report.вина_водителя || '—']
+            ];
+
+            let rows = '';
+            fields.forEach(f => {
+                rows += `<div class="row"><span class="label">${f[0]}</span><span class="value">${f[1] || '—'}</span></div>`;
+            });
+
+            report.innerHTML = `
+                <h3>📋 ОТЧЁТ ПО КЛАССИФИКАЦИИ</h3>
+                ${rows}
+                <div class="verdict-box ${vc}">${verdict.text} · ${verdict.code || ''}</div>
+                <div style="font-size:14px; margin-top:6px; color:#1e3a5f; text-align:center;">${verdict.reason || ''}</div>
+                <div class="footnote">Полная классификация по внутреннему регламенту испытательного центра</div>
+            `;
+
+            messagesEl.appendChild(report);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+
+            optionsEl.innerHTML = '';
+            const resetBtn = document.createElement('button');
+            resetBtn.textContent = '🔄 Заново';
+            resetBtn.className = 'btn-reset';
+            resetBtn.style.flex = '1';
+            resetBtn.addEventListener('click', resetAll);
+            optionsEl.appendChild(resetBtn);
+            stepCounter.textContent = '✅ готово';
+        }
+
+        function addMessage(type, text) {
+            const div = document.createElement('div');
+            div.className = `msg ${type === 'bot' ? 'msg-bot' : 'msg-user'}`;
+            div.textContent = text;
+            messagesEl.appendChild(div);
+            messagesEl.scrollTop = messagesEl.scrollHeight;
+        }
+
+        function updateStep() { stepCounter.textContent = `шаг ${state.step}`; }
+
+        function resetAll() {
+            state = {
+                currentNode: 'start',
+                step: 1,
+                report: {
+                    участник_1: 'Водитель ТС (испытатель)',
+                    участник_2: '—',
+                    тип_тс: '—',
+                    место: '—',
+                    дорога: '—',
+                    погода: '—',
+                    светофор: '—',
+                    знаки: '—',
+                    разметка: '—',
+                    маневр: '—',
+                    переход: '—',
+                    нарушение_пдд: '—',
+                    технеисправность: '—',
+                    крайняя_необходимость: '—',
+                    задание_испытаний: '—',
+                    вина_водителя: '—',
+                    итог: '—',
+                    код: '—',
+                    обоснование: '—'
+                }
+            };
+            messagesEl.innerHTML = `<div class="msg msg-bot">🚦 Запуск полной классификации.<br>Выбирайте варианты — система определит: <strong>ИНЦИДЕНТ</strong> или <strong>НЕ ИНЦИДЕНТ</strong>.</div>`;
+            stepCounter.textContent = 'шаг 1';
+            renderNode('start');
+        }
+
+        renderNode('start');
+    })();
+</script>
+
+</body>
+</html>
