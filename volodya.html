@@ -1,0 +1,355 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Дерево решений — наезд на пешехода (водитель-испытатель)</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        body {
+            background: #f5f7fb;
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+        }
+        .container {
+            max-width: 1400px;
+            width: 100%;
+            background: white;
+            border-radius: 32px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.08);
+            padding: 24px 20px 32px;
+        }
+        h1 {
+            font-size: 24px;
+            font-weight: 600;
+            color: #0b1b33;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 8px;
+            letter-spacing: -0.2px;
+        }
+        .sub {
+            color: #3d5775;
+            font-size: 15px;
+            border-left: 4px solid #2563eb;
+            padding-left: 16px;
+            background: #f0f4fe;
+            border-radius: 12px;
+            padding: 12px 16px;
+            margin-bottom: 28px;
+            line-height: 1.5;
+        }
+        .graph-wrapper {
+            overflow-x: auto;
+            padding: 12px 4px 20px;
+        }
+        .graph {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            min-width: 820px;
+            font-size: 14px;
+        }
+        .row {
+            display: flex;
+            flex-wrap: nowrap;
+            align-items: flex-start;
+            gap: 8px;
+            min-height: 48px;
+        }
+        .node {
+            background: white;
+            border-radius: 18px;
+            padding: 10px 16px;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.04), 0 0 0 1px #e6edf4;
+            font-weight: 500;
+            color: #0b1b33;
+            flex-shrink: 0;
+            transition: 0.1s ease;
+            line-height: 1.4;
+            border: 1px solid transparent;
+        }
+        .node-root {
+            background: #0b1b33;
+            color: white;
+            box-shadow: 0 4px 12px rgba(11,27,51,0.15);
+            border: none;
+        }
+        .node-question {
+            background: #eef5ff;
+            border-color: #b6d0f0;
+            box-shadow: 0 1px 4px rgba(37,99,235,0.06);
+        }
+        .node-verdict {
+            background: #f2f4f8;
+            border-color: #d0d9e6;
+            font-weight: 600;
+            color: #1a2c44;
+        }
+        .node-verdict.accused-driver { border-left: 8px solid #b91c1c; background: #fef2f2; }
+        .node-verdict.accused-pedestrian { border-left: 8px solid #b45309; background: #fffbeb; }
+        .node-verdict.accused-contractor { border-left: 8px solid #7c3aed; background: #f5f3ff; }
+        .node-verdict.accused-service { border-left: 8px solid #0d9488; background: #f0fdfa; }
+        .node-verdict.no-fault { border-left: 8px solid #059669; background: #ecfdf5; }
+        .node-verdict.shared { border-left: 8px solid #6b7280; background: #f9fafb; }
+        .branch-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #3d5a78;
+            background: #ecf1f7;
+            padding: 4px 10px;
+            border-radius: 40px;
+            white-space: nowrap;
+            align-self: center;
+            letter-spacing: 0.2px;
+        }
+        .branch-label.yes { background: #d1e7dd; color: #0b5e42; }
+        .branch-label.no { background: #f8d7da; color: #842029; }
+        .indent-1 { margin-left: 32px; }
+        .indent-2 { margin-left: 72px; }
+        .indent-3 { margin-left: 112px; }
+        .indent-4 { margin-left: 152px; }
+        .flex-wrap { flex-wrap: wrap; }
+        .gap-2 { gap: 12px; }
+        .mt-1 { margin-top: 4px; }
+        .text-small { font-size: 13px; }
+        .badge {
+            display: inline-block;
+            background: #e6edf4;
+            border-radius: 40px;
+            padding: 0 12px;
+            font-size: 11px;
+            font-weight: 600;
+            color: #1f3a57;
+            margin-left: 6px;
+        }
+        hr {
+            margin: 24px 0 12px;
+            border: none;
+            border-top: 2px dashed #dce3ec;
+        }
+        .legend {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px 28px;
+            padding: 12px 0 4px;
+            font-size: 13px;
+            color: #1e3a5f;
+        }
+        .legend span { display: flex; align-items: center; gap: 8px; }
+        .dot {
+            width: 14px;
+            height: 14px;
+            border-radius: 40px;
+            display: inline-block;
+        }
+        .dot.driver { background: #b91c1c; }
+        .dot.pedestrian { background: #b45309; }
+        .dot.contractor { background: #7c3aed; }
+        .dot.service { background: #0d9488; }
+        .dot.nofault { background: #059669; }
+        .dot.shared { background: #6b7280; }
+        @media (max-width: 700px) {
+            .container { padding: 16px; }
+            .node { padding: 6px 10px; font-size: 12px; }
+            .branch-label { font-size: 10px; padding: 2px 8px; }
+            .indent-1 { margin-left: 12px; }
+            .indent-2 { margin-left: 24px; }
+            .indent-3 { margin-left: 36px; }
+            .indent-4 { margin-left: 48px; }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h1>🚦 Дерево решений · наезд на пешехода (обочина / РПП)</h1>
+    <div class="sub">
+        <strong>Водитель-испытатель</strong> · полный граф с учётом ПДД, РПП, технического состояния и действий пешехода.<br>
+        ⚡ Каждая конечная вершина — итоговый вердикт с указанием ответственного.
+    </div>
+
+    <div class="graph-wrapper">
+        <div class="graph">
+
+            <!-- СТАРТ -->
+            <div class="row">
+                <div class="node node-root">🚀 Инцидент с пешеходом на обочине / дороге</div>
+                <span class="branch-label">место</span>
+            </div>
+
+            <!-- УРОВЕНЬ 0: тротуар / обочина / проезжая часть -->
+            <div class="row indent-1">
+                <div class="node node-question">📍 Тротуар (отделён бордюром)</div>
+                <span class="branch-label">→</span>
+                <div class="node node-question">📍 Обочина (вровень с дорогой)</div>
+                <span class="branch-label">→</span>
+                <div class="node node-question">📍 Проезжая часть (вне перехода)</div>
+            </div>
+
+            <!-- ======== ВЕТКА А: ТРОТУАР ======== -->
+            <div class="row indent-2">
+                <div class="node node-question">Выезд на тротуар вынужденный?</div>
+                <span class="branch-label no">Нет</span>
+                <div class="node node-verdict accused-driver">🔴 В1: Вина водителя (ст. 12.15)</div>
+            </div>
+            <div class="row indent-3">
+                <span class="branch-label yes">Да</span>
+                <div class="node node-question">Препятствие обозначено знаком РПП?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-contractor">🟣 В2: Вина подрядчика РПП</div>
+            </div>
+            <div class="row indent-4">
+                <span class="branch-label no">Нет</span>
+                <div class="node node-verdict accused-driver">🔴 В3: Вина водителя (можно объехать иначе)</div>
+            </div>
+
+            <!-- ======== ВЕТКА Б: ОБОЧИНА (ОСНОВНАЯ) ======== -->
+            <div class="row indent-2">
+                <div class="node node-question">🛣️ На обочине РПП (дорожные работы)?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-question">Есть знаки + схема объезда?</div>
+                <span class="branch-label no">Нет</span>
+                <div class="node node-verdict accused-contractor">🟣 В4: Вина подрядчика (нет знаков)</div>
+            </div>
+            <div class="row indent-3">
+                <span class="branch-label yes">Да</span>
+                <div class="node node-question">Водитель следует по схеме?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict no-fault">✅ В5: Вины нет (действовал по схеме)</div>
+            </div>
+            <div class="row indent-4">
+                <span class="branch-label no">Нет</span>
+                <div class="node node-verdict accused-driver">🔴 В6: Вина водителя (отклонился от схемы)</div>
+            </div>
+
+            <!-- ОБЫЧНАЯ ОБОЧИНА (без РПП) -->
+            <div class="row indent-2">
+                <span class="branch-label no">Нет РПП</span>
+                <div class="node node-question">Обочина отделена сплошной?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-driver">🔴 В7: Вина водителя (пересек сплошную)</div>
+            </div>
+            <div class="row indent-3">
+                <span class="branch-label no">Нет (прерывистая/без разметки)</span>
+                <div class="node node-question">Направление пешехода?</div>
+                <span class="branch-label">Попутно</span>
+                <div class="node node-question">Водитель выехал на обочину?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-driver">🔴 В8: Вина водителя (выехал на обочину)</div>
+            </div>
+            <div class="row indent-4">
+                <span class="branch-label no">Нет (на своей полосе)</span>
+                <div class="node node-question">Пешеход резко шагнул под колёса?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-pedestrian">🟠 В9: Вина пешехода (п.4.1 ПДД)</div>
+            </div>
+            <div class="row indent-4" style="margin-left: 180px;">
+                <span class="branch-label no">Нет (шёл прямо)</span>
+                <div class="node node-verdict accused-driver">🔴 В10: Вина водителя (не соблюдал интервал)</div>
+            </div>
+
+            <!-- ВСТРЕЧНЫЙ ПЕШЕХОД -->
+            <div class="row indent-3" style="margin-left: 136px;">
+                <span class="branch-label">Встречно</span>
+                <div class="node node-question">Тех. возможность остановиться?</div>
+                <span class="branch-label yes">Да (путь ≤ дист.)</span>
+                <div class="node node-verdict accused-driver">🔴 В11: Вина водителя (не затормозил)</div>
+            </div>
+            <div class="row indent-4" style="margin-left: 180px;">
+                <span class="branch-label no">Нет (путь > дист.)</span>
+                <div class="node node-verdict accused-pedestrian">🟠 В12: Вина пешехода (создал аварию)</div>
+            </div>
+
+            <!-- ======== ВЕТКА В: ПРОЕЗЖАЯ ЧАСТЬ ======== -->
+            <div class="row indent-2">
+                <div class="node node-question">🚸 Пешеходный переход (зебра/знак)?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-question">Водитель снизил скорость?</div>
+                <span class="branch-label no">Нет</span>
+                <div class="node node-verdict accused-driver">🔴 В15: Вина водителя (ст.12.18)</div>
+            </div>
+            <div class="row indent-3">
+                <span class="branch-label yes">Да</span>
+                <div class="node node-question">Пешеход выбежал внезапно (<1с)?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-pedestrian">🟠 В13: Вина пешехода (п.4.5)</div>
+            </div>
+            <div class="row indent-4">
+                <span class="branch-label no">Нет (шёл спокойно)</span>
+                <div class="node node-verdict accused-driver">🔴 В14: Вина водителя (не пропустил)</div>
+            </div>
+
+            <!-- ВНЕ ПЕРЕХОДА -->
+            <div class="row indent-2">
+                <span class="branch-label no">Нет перехода</span>
+                <div class="node node-question">Пешеход из-за препятствия?</div>
+                <span class="branch-label no">Нет (прямая видимость)</span>
+                <div class="node node-verdict accused-driver">🔴 В16: Вина водителя (не заметил)</div>
+            </div>
+            <div class="row indent-3">
+                <span class="branch-label yes">Да (внезапно)</span>
+                <div class="node node-question">Скорость превышена?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-driver">🔴 В17: Вина водителя (превышение)</div>
+            </div>
+            <div class="row indent-4">
+                <span class="branch-label no">Нет (скорость в норме)</span>
+                <div class="node node-verdict accused-pedestrian">🟠 В18: Вина пешехода (внезапный выход)</div>
+            </div>
+
+            <!-- ======== ФОРС-МАЖОРЫ (НАКЛАДЫВАЮТСЯ ПОВЕРХ) ======== -->
+            <hr>
+            <div class="row">
+                <div class="node node-root" style="background: #1e3a5f;">⚙️ ФОРС-МАЖОРЫ (применимы к любому вердикту)</div>
+            </div>
+            <div class="row indent-1">
+                <div class="node node-question">Внезапный отказ тормозов/руля (экспертиза)?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-service">🟢 Ф1: Вина сервиса/завода</div>
+                <span class="branch-label no" style="margin-left: 12px;">Нет</span>
+                <div class="node node-verdict no-fault" style="background:#f2f4f8; border-left-color:#6b7280;">⏺ Оставить вердикт выше</div>
+            </div>
+            <div class="row indent-1">
+                <div class="node node-question">Письменное задание инженера (маршрут/скорость)?</div>
+                <span class="branch-label yes">Да</span>
+                <div class="node node-verdict accused-contractor" style="background:#f5f3ff;">🟣 Ф2: Вина заказчика испытаний</div>
+                <span class="branch-label no" style="margin-left: 12px;">Нет</span>
+                <div class="node node-verdict no-fault" style="background:#f2f4f8; border-left-color:#6b7280;">⏺ Оставить вердикт выше</div>
+            </div>
+
+            <!-- ======== ОБОЮДНАЯ ВИНА ======== -->
+            <hr>
+            <div class="row">
+                <div class="node node-question" style="background: #f3f4f6;">⚖️ Оба нарушили (водитель + пешеход)?</div>
+                <span class="branch-label">→</span>
+                <div class="node node-verdict shared">🔶 Обоюдная вина (суд делит %)</div>
+            </div>
+
+            <!-- ЛЕГЕНДА -->
+            <div class="legend">
+                <span><span class="dot driver"></span> Вина водителя</span>
+                <span><span class="dot pedestrian"></span> Вина пешехода</span>
+                <span><span class="dot contractor"></span> Вина подрядчика РПП</span>
+                <span><span class="dot service"></span> Вина сервиса/завода</span>
+                <span><span class="dot nofault"></span> Вины нет</span>
+                <span><span class="dot shared"></span> Обоюдная</span>
+                <span style="color:#3d5a78;">В1–В18 — коды вердиктов</span>
+            </div>
+
+            <div style="margin-top: 18px; font-size: 13px; color: #3d5775; background: #f8faff; padding: 12px 16px; border-radius: 20px; border: 1px solid #e2eaf3;">
+                ✅ <strong>Как читать:</strong> двигайтесь от старта по веткам «Да» / «Нет». Каждая конечная вершина — итоговое решение.
+                Для учёта техсостояния или приказа инженера — примените блок форс-мажоров поверх любого вердикта.
+            </div>
+
+        </div>
+    </div>
+</div>
+</body>
+</html>
