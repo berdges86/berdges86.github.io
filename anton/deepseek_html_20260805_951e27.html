@@ -1,0 +1,1743 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>PDF Compare Pro (Overlay + Text)</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+    </script>
+    <style>
+        /* ===== Базовые стили (из 424bc5) ===== */
+        :root {
+            --bg: #0b1017;
+            --panel: #141b25;
+            --panel2: #1a2432;
+            --border: #2c3748;
+            --accent: #4aa3ff;
+            --accent2: #7f5cff;
+            --text: #eef3fa;
+            --muted: #93a5bb;
+            --danger: #ff3ba7;
+            --success: #30d158;
+            --radius: 14px;
+            --line-same: #2ea043;
+            --line-changed: #dbb331;
+            --line-deleted: #f85149;
+            --line-added: #58a6ff;
+        }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            background: var(--bg);
+            color: var(--text);
+            font-family: 'Segoe UI', Inter, Arial, sans-serif;
+            overflow: hidden;
+        }
+        #root {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+        .toolbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            gap: 12px;
+            padding: 10px 20px;
+            background: var(--panel);
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+            flex-wrap: wrap;
+        }
+        .logo {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #6cb4ee, #9d7dff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            white-space: nowrap;
+        }
+        .tools {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: var(--panel2);
+            border-radius: 10px;
+            border: 1px solid var(--border);
+        }
+        .tool-group label {
+            font-size: 12px;
+            color: var(--muted);
+        }
+        .tool-group span {
+            min-width: 36px;
+            text-align: center;
+            font-weight: 700;
+            font-size: 13px;
+        }
+        .tool-group input[type="range"] {
+            width: 100px;
+            cursor: pointer;
+        }
+        .tool-group input[type="number"] {
+            width: 60px;
+            background: #1a2432;
+            border: 1px solid var(--border);
+            color: white;
+            border-radius: 6px;
+            padding: 4px 6px;
+            font-size: 13px;
+        }
+        .tool-group input[type="checkbox"] {
+            accent-color: var(--accent);
+            width: 16px;
+            height: 16px;
+            cursor: pointer;
+        }
+        button {
+            border: none;
+            cursor: pointer;
+            padding: 7px 14px;
+            border-radius: 10px;
+            background: #243245;
+            color: white;
+            transition: .2s;
+            font-size: 13px;
+            white-space: nowrap;
+        }
+        button:hover {
+            background: #355071;
+            transform: translateY(-1px);
+        }
+        button:active {
+            transform: scale(.97);
+        }
+        select {
+            background: #243245;
+            color: white;
+            border: none;
+            padding: 6px 10px;
+            border-radius: 8px;
+            font-size: 13px;
+        }
+        .uploadArea {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 14px;
+            padding: 14px 20px;
+            background: #111722;
+            border-bottom: 1px solid var(--border);
+            flex-shrink: 0;
+        }
+        .uploadBox {
+            position: relative;
+            border: 2px dashed #3b4b61;
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+            background: #182130;
+            transition: .25s;
+            cursor: pointer;
+            overflow: hidden;
+        }
+        .uploadBox:hover {
+            border-color: var(--accent);
+            background: #1d2a3d;
+        }
+        .uploadIcon {
+            font-size: 36px;
+            margin-bottom: 6px;
+        }
+        .uploadTitle {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+        .uploadBox input {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .viewer {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px;
+            padding: 10px;
+            flex: 1;
+            overflow: hidden;
+        }
+        .panel {
+            display: flex;
+            flex-direction: column;
+            background: var(--panel);
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid var(--border);
+            position: relative;
+        }
+        .panelTitle {
+            padding: 8px 12px;
+            background: var(--panel2);
+            font-weight: 600;
+            text-align: center;
+            border-bottom: 1px solid var(--border);
+            font-size: 14px;
+        }
+        .canvasWrapper {
+            position: relative;
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 12px;
+            background: #10151d;
+        }
+        .canvasWrapper canvas {
+            box-shadow: 0 0 20px rgba(0, 0, 0, .45);
+            background: white;
+            transition: transform 0.15s ease-out;
+            transform-origin: center center;
+        }
+        .statusbar {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            padding: 8px 16px;
+            background: var(--panel);
+            border-top: 1px solid var(--border);
+            font-size: 13px;
+            flex-shrink: 0;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        .statusbar span {
+            font-weight: 700;
+            color: #6cb4ee;
+        }
+        .fullscreen {
+            position: fixed !important;
+            left: 0;
+            top: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 99999;
+            background: var(--bg);
+        }
+        .hidden {
+            display: none !important;
+        }
+        .diffRect {
+            position: absolute;
+            border: 2px solid #ff00cc;
+            pointer-events: none;
+        }
+        .pageBar {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            padding: 6px 0;
+            background: var(--panel2);
+            border-top: 1px solid var(--border);
+        }
+        .pageBar button {
+            background: transparent;
+            padding: 2px 12px;
+            font-size: 16px;
+        }
+        .pageBar button:hover {
+            background: #2a3a50;
+        }
+        .pageBar span {
+            font-weight: 600;
+            min-width: 60px;
+            text-align: center;
+        }
+        .pageBar select {
+            background: #1e2a3a;
+            padding: 4px 8px;
+            border-radius: 6px;
+        }
+        #miniMap {
+            position: absolute;
+            right: 12px;
+            bottom: 12px;
+            width: 150px;
+            height: 200px;
+            background: #111;
+            border: 1px solid #555;
+            border-radius: 8px;
+            overflow: hidden;
+            z-index: 50;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+        }
+        #miniCanvas {
+            width: 100%;
+            height: 100%;
+        }
+        #miniViewport {
+            position: absolute;
+            border: 2px solid cyan;
+            pointer-events: none;
+        }
+        #magnifier {
+            position: fixed;
+            width: 200px;
+            height: 200px;
+            right: 20px;
+            top: 100px;
+            border: 2px solid #66c0ff;
+            background: #000;
+            display: none;
+            z-index: 99999;
+            border-radius: 8px;
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.8);
+        }
+        #magnifier canvas {
+            width: 100%;
+            height: 100%;
+            image-rendering: pixelated;
+        }
+        #loading {
+            position: fixed;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 20px 40px;
+            background: #111;
+            color: white;
+            border-radius: 10px;
+            display: none;
+            z-index: 999999;
+            font-size: 20px;
+            border: 1px solid var(--border);
+        }
+        @media (max-width: 1200px) {
+            .viewer {
+                grid-template-columns: 1fr;
+            }
+            .uploadArea {
+                grid-template-columns: 1fr;
+            }
+            .toolbar {
+                flex-direction: column;
+                align-items: stretch;
+            }
+            .tools {
+                justify-content: center;
+            }
+            #miniMap {
+                width: 120px;
+                height: 160px;
+            }
+            #magnifier {
+                width: 160px;
+                height: 160px;
+            }
+        }
+
+        /* ===== Стили для текстового режима ===== */
+        .text-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 16px 20px;
+            background: #10151d;
+            white-space: pre-wrap;
+            word-break: break-word;
+            line-height: 1.8;
+            font-size: 14px;
+        }
+        .text-content .placeholder {
+            color: var(--muted);
+            text-align: center;
+            padding: 80px 20px;
+            font-style: italic;
+        }
+        .text-line {
+            padding: 4px 12px;
+            border-radius: 4px;
+            margin: 2px 0;
+            transition: all 0.2s;
+            position: relative;
+        }
+        .text-line.same {
+            background: rgba(46, 160, 67, 0.08);
+            border-left: 3px solid var(--line-same);
+        }
+        .text-line.changed {
+            background: rgba(219, 171, 49, 0.12);
+            border-left: 3px solid var(--line-changed);
+        }
+        .text-line.deleted {
+            background: rgba(248, 81, 73, 0.08);
+            border-left: 3px solid var(--line-deleted);
+            text-decoration: line-through;
+            opacity: 0.7;
+        }
+        .text-line.added {
+            background: rgba(88, 166, 255, 0.08);
+            border-left: 3px solid var(--line-added);
+        }
+        .image-block {
+            margin: 12px 0;
+            padding: 16px;
+            border-radius: 8px;
+            background: var(--panel);
+            border: 2px solid var(--border);
+            text-align: center;
+            position: relative;
+        }
+        .image-block.same {
+            border-color: var(--line-same);
+            background: rgba(46, 160, 67, 0.05);
+        }
+        .image-block.changed {
+            border-color: var(--line-changed);
+            background: rgba(219, 171, 49, 0.08);
+        }
+        .image-block.deleted {
+            border-color: var(--line-deleted);
+            background: rgba(248, 81, 73, 0.08);
+        }
+        .image-block.added {
+            border-color: var(--line-added);
+            background: rgba(88, 166, 255, 0.08);
+        }
+        .image-block img {
+            max-width: 100%;
+            max-height: 400px;
+            border-radius: 6px;
+            display: block;
+            margin: 0 auto;
+        }
+        .image-block .image-label {
+            font-size: 12px;
+            color: var(--muted);
+            margin-top: 8px;
+        }
+        .image-block .image-badge {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 2px 12px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.6);
+            color: white;
+            backdrop-filter: blur(4px);
+        }
+        .image-badge.same {
+            background: var(--line-same);
+            color: white;
+        }
+        .image-badge.changed {
+            background: var(--line-changed);
+            color: white;
+        }
+        .image-badge.deleted {
+            background: var(--line-deleted);
+            color: white;
+        }
+        .image-badge.added {
+            background: var(--line-added);
+            color: white;
+        }
+
+        /* Стрелки для текстового режима */
+        #diffSvgLayer {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1000;
+            overflow: visible;
+        }
+        #diffSvgLayer path {
+            fill: none;
+            stroke-width: 3;
+            opacity: 0.9;
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.5));
+            animation: arrowPulse 2s ease-in-out infinite;
+        }
+        #diffSvgLayer path:hover {
+            stroke-width: 5;
+            opacity: 1;
+            animation: none;
+        }
+        .arrow-same {
+            stroke: var(--line-same);
+            stroke-dasharray: 5, 5;
+        }
+        .arrow-changed {
+            stroke: var(--line-changed);
+            stroke-width: 3.5;
+        }
+        .arrow-deleted {
+            stroke: var(--line-deleted);
+            stroke-width: 3.5;
+        }
+        .arrow-added {
+            stroke: var(--line-added);
+            stroke-width: 3.5;
+        }
+        @keyframes arrowPulse {
+            0%,
+            100% {
+                opacity: 0.7;
+            }
+            50% {
+                opacity: 1;
+                stroke-width: 4;
+            }
+        }
+
+        /* Переключение режимов: показываем/скрываем */
+        .panel .canvas-mode {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+        .panel .text-mode {
+            display: none;
+            flex-direction: column;
+            flex: 1;
+            min-height: 0;
+        }
+        .mode-overlay .canvas-mode {
+            display: flex;
+        }
+        .mode-overlay .text-mode {
+            display: none;
+        }
+        .mode-text .canvas-mode {
+            display: none;
+        }
+        .mode-text .text-mode {
+            display: flex;
+        }
+    </style>
+</head>
+<body>
+    <div id="root">
+        <!-- Верхняя панель -->
+        <header class="toolbar">
+            <div class="logo">📄 PDF Compare Pro</div>
+            <div class="tools">
+                <div class="tool-group">
+                    <label>X</label>
+                    <input type="range" id="offsetX" min="-500" max="500" value="0" step="1">
+                    <span id="offsetXValue">0</span>
+                </div>
+                <div class="tool-group">
+                    <label>Y</label>
+                    <input type="range" id="offsetY" min="-500" max="500" value="0" step="1">
+                    <span id="offsetYValue">0</span>
+                </div>
+                <div class="tool-group">
+                    <label>Масштаб</label>
+                    <select id="zoomSelect">
+                        <option value="0.25">25%</option>
+                        <option value="0.5">50%</option>
+                        <option value="0.75">75%</option>
+                        <option value="1" selected>100%</option>
+                        <option value="1.25">125%</option>
+                        <option value="1.5">150%</option>
+                        <option value="2">200%</option>
+                        <option value="3">300%</option>
+                        <option value="4">400%</option>
+                        <option value="custom">Свой</option>
+                    </select>
+                    <input type="number" id="zoomCustom" min="0.1" max="10" step="0.05" value="1" style="display:none; width:60px;">
+                </div>
+                <div class="tool-group">
+                    <label>Режим</label>
+                    <select id="compareMode">
+                        <option value="overlay">Overlay</option>
+                        <option value="text">Текст</option>
+                    </select>
+                </div>
+                <div class="tool-group">
+                    <label>Прозрачность</label>
+                    <input id="overlayAlpha" type="range" min="0" max="100" value="50">
+                    <span id="alphaValue">50%</span>
+                </div>
+                <div class="tool-group">
+                    <label>Подсветка совпадений</label>
+                    <input type="checkbox" id="highlightMatch">
+                </div>
+                <button id="autoAlign">⚡ Авто</button>
+                <button id="maxAlign">🎯 Макс. совпадение</button>
+                <button id="fullscreen">⛶ Fullscreen</button>
+                <button id="reset">↺ Сброс</button>
+                <button id="savePNG">💾 PNG</button>
+                <button id="exportReport">📊 Отчёт</button>
+            </div>
+        </header>
+
+        <!-- Область загрузки -->
+        <section class="uploadArea">
+            <div class="uploadBox" id="upload1">
+                <div class="uploadIcon">📂</div>
+                <div class="uploadTitle">Макет №1</div>
+                <div id="file1name">—</div>
+                <input type="file" id="fileInput1" accept=".pdf">
+            </div>
+            <div class="uploadBox" id="upload2">
+                <div class="uploadIcon">📂</div>
+                <div class="uploadTitle">Макет №2</div>
+                <div id="file2name">—</div>
+                <input type="file" id="fileInput2" accept=".pdf">
+            </div>
+        </section>
+
+        <!-- Три панели -->
+        <section class="viewer" id="viewer">
+            <div class="panel" id="leftPanel">
+                <div class="panelTitle">Документ 1</div>
+                <div class="canvas-mode">
+                    <div class="canvasWrapper" id="panelLeft">Загрузите PDF</div>
+                </div>
+                <div class="text-mode">
+                    <div class="text-content" id="textLeft"><div class="placeholder">Загрузите PDF</div></div>
+                </div>
+            </div>
+            <div class="panel" id="centerPanel">
+                <div class="panelTitle">Сравнение</div>
+                <div class="canvas-mode">
+                    <div class="canvasWrapper" id="panelDiff">Загрузите оба PDF</div>
+                    <div id="miniMap">
+                        <canvas id="miniCanvas"></canvas>
+                        <div id="miniViewport"></div>
+                    </div>
+                    <div class="pageBar">
+                        <button id="prevPage">◀</button>
+                        <span id="pageLabel">1/1</span>
+                        <button id="nextPage">▶</button>
+                        <select id="pageSelect" style="display:none;"></select>
+                    </div>
+                </div>
+                <div class="text-mode">
+                    <div class="text-content" id="textDiff"><div class="placeholder">Загрузите оба PDF</div></div>
+                    <svg id="diffSvgLayer"></svg>
+                </div>
+            </div>
+            <div class="panel" id="rightPanel">
+                <div class="panelTitle">Документ 2</div>
+                <div class="canvas-mode">
+                    <div class="canvasWrapper" id="panelRight">Загрузите PDF</div>
+                </div>
+                <div class="text-mode">
+                    <div class="text-content" id="textRight"><div class="placeholder">Загрузите PDF</div></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Статусбар -->
+        <footer class="statusbar">
+            <div>Совпадение: <span id="matchPercent">—</span></div>
+            <div>Различий: <span id="diffCount">—</span></div>
+            <div>Масштаб: <span id="zoomLabel">100%</span></div>
+            <div>Режим: <span id="modeLabel">Overlay</span></div>
+            <div>Страница: <span id="pageStatus">1/1</span></div>
+        </footer>
+    </div>
+
+    <!-- Лупа -->
+    <div id="magnifier"><canvas id="magnifierCanvas"></canvas></div>
+
+    <!-- Индикатор загрузки -->
+    <div id="loading">0%</div>
+
+    <script>
+        // ============================================================
+        // PDF Compare Pro — Overlay + Text (улучшенный)
+        // ============================================================
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc =
+            'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        const $ = id => document.getElementById(id);
+        const escapeHtml = str => String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+        // ============================================================
+        // СОСТОЯНИЕ
+        // ============================================================
+        const App = {
+            canvas1: null,
+            canvas2: null,
+            pdf1: null,
+            pdf2: null,
+            pages1: [],
+            pages2: [],
+            currentPage: 1,
+            pageCount: 0,
+            zoom: 1,
+            mode: 'overlay',
+            overlayAlpha: 0.5,
+            offsetX: 0,
+            offsetY: 0,
+            fullscreen: false,
+            syncScroll: true,
+            stats: { diffPixels: 0, samePixels: 0, matchPercent: 0 },
+            text1: '',
+            text2: '',
+            images1: [],
+            images2: [],
+            coords1: [],
+            coords2: [],
+            diffs: [],
+            diffIndex: 0,
+            scrollLock: false,
+            highlightMatch: false, // новый флаг
+        };
+
+        // ============================================================
+        // UI ЭЛЕМЕНТЫ
+        // ============================================================
+        const UI = {
+            left: $('panelLeft'),
+            right: $('panelRight'),
+            diff: $('panelDiff'),
+            viewer: $('viewer'),
+            match: $('matchPercent'),
+            count: $('diffCount'),
+            zoomLabel: $('zoomLabel'),
+            modeLabel: $('modeLabel'),
+            offsetX: $('offsetX'),
+            offsetY: $('offsetY'),
+            offsetXValue: $('offsetXValue'),
+            offsetYValue: $('offsetYValue'),
+            zoomSelect: $('zoomSelect'),
+            zoomCustom: $('zoomCustom'),
+            compareMode: $('compareMode'),
+            alpha: $('overlayAlpha'),
+            alphaValue: $('alphaValue'),
+            highlightMatch: $('highlightMatch'),
+            fullscreen: $('fullscreen'),
+            autoAlign: $('autoAlign'),
+            maxAlign: $('maxAlign'),
+            reset: $('reset'),
+            savePNG: $('savePNG'),
+            exportReport: $('exportReport'),
+            prevPage: $('prevPage'),
+            nextPage: $('nextPage'),
+            pageLabel: $('pageLabel'),
+            pageStatus: $('pageStatus'),
+            pageSelect: $('pageSelect'),
+            loading: $('loading'),
+            textLeft: $('textLeft'),
+            textRight: $('textRight'),
+            textDiff: $('textDiff'),
+            svgLayer: $('diffSvgLayer'),
+        };
+
+        // ============================================================
+        // ФУНКЦИИ ДЛЯ CANVAS (OVERLAY)
+        // ============================================================
+        function updateToolbar() {
+            UI.offsetXValue.textContent = App.offsetX;
+            UI.offsetYValue.textContent = App.offsetY;
+            UI.zoomLabel.textContent = Math.round(App.zoom * 100) + '%';
+            UI.modeLabel.textContent = App.mode === 'overlay' ? 'Overlay' : 'Текст';
+            UI.alphaValue.textContent = Math.round(App.overlayAlpha * 100) + '%';
+            UI.match.textContent = App.stats.matchPercent.toFixed(2) + '%';
+            UI.count.textContent = App.stats.diffPixels.toLocaleString();
+            updatePageLabel();
+            // синхронизация zoomSelect
+            let found = false;
+            for (let opt of UI.zoomSelect.options) {
+                if (opt.value !== 'custom' && Math.abs(parseFloat(opt.value) - App.zoom) < 0.001) {
+                    UI.zoomSelect.value = opt.value;
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                UI.zoomSelect.value = 'custom';
+                UI.zoomCustom.style.display = 'inline-block';
+                UI.zoomCustom.value = App.zoom;
+            } else {
+                UI.zoomCustom.style.display = 'none';
+            }
+        }
+
+        function updatePageLabel() {
+            const total = App.pageCount || 1;
+            UI.pageLabel.textContent = App.currentPage + '/' + total;
+            UI.pageStatus.textContent = App.currentPage + '/' + total;
+            if (UI.pageSelect.children.length !== total) {
+                UI.pageSelect.innerHTML = '';
+                for (let i = 1; i <= total; i++) {
+                    const opt = document.createElement('option');
+                    opt.value = i;
+                    opt.textContent = 'Стр. ' + i;
+                    UI.pageSelect.appendChild(opt);
+                }
+                UI.pageSelect.style.display = total > 1 ? 'inline-block' : 'none';
+            }
+            UI.pageSelect.value = App.currentPage;
+        }
+
+        function showCanvas(canvas, target) {
+            target.innerHTML = '';
+            if (!canvas) { target.innerHTML = '<span class="placeholder">Нет данных</span>'; return; }
+            target.appendChild(canvas);
+            // центрируем с помощью transform-origin: center center
+            canvas.style.transform = 'scale(' + App.zoom + ')';
+            canvas.style.transformOrigin = 'center center';
+            // также центрируем в контейнере через display: flex и align-items: center
+        }
+
+        function updateZoom() {
+            document.querySelectorAll('.canvasWrapper canvas').forEach(c => {
+                c.style.transform = 'scale(' + App.zoom + ')';
+                c.style.transformOrigin = 'center center';
+            });
+            updateToolbar();
+        }
+
+        function paintPink(data, index) {
+            data[index] = 255;
+            data[index + 1] = 0;
+            data[index + 2] = 255;
+            data[index + 3] = 255;
+        }
+
+        function refreshCompare() {
+            if (!App.canvas1 || !App.canvas2) return;
+            if (App.mode === 'overlay') {
+                renderOverlay();
+                updateToolbar();
+                updateMiniMap();
+            }
+        }
+
+        function renderOverlay() {
+            const w = Math.min(App.canvas1.width, App.canvas2.width);
+            const h = Math.min(App.canvas1.height, App.canvas2.height);
+            const canvas = document.createElement('canvas');
+            canvas.width = w;
+            canvas.height = h;
+            const ctx = canvas.getContext('2d');
+
+            // Получаем пиксельные данные
+            const ctx1 = App.canvas1.getContext('2d');
+            const ctx2 = App.canvas2.getContext('2d');
+            const img1 = ctx1.getImageData(0, 0, w, h);
+            const img2 = ctx2.getImageData(0, 0, w, h);
+            const data1 = img1.data;
+            const data2 = img2.data;
+
+            const outData = ctx.createImageData(w, h);
+            const od = outData.data;
+
+            const dx = App.offsetX;
+            const dy = App.offsetY;
+            const alpha = App.overlayAlpha;
+            const highlight = App.highlightMatch;
+            const threshold = 30; // порог совпадения
+
+            let diffPixels = 0;
+            let samePixels = 0;
+
+            for (let y = 0; y < h; y++) {
+                for (let x = 0; x < w; x++) {
+                    const sx = x + dx;
+                    const sy = y + dy;
+                    const p = (y * w + x) * 4;
+
+                    if (sx < 0 || sy < 0 || sx >= w || sy >= h) {
+                        // Вне области – берём из первого документа
+                        od[p] = data1[p];
+                        od[p + 1] = data1[p + 1];
+                        od[p + 2] = data1[p + 2];
+                        od[p + 3] = 255;
+                        diffPixels++;
+                        continue;
+                    }
+
+                    const q = (sy * w + sx) * 4;
+                    const dr = Math.abs(data1[p] - data2[q]);
+                    const dg = Math.abs(data1[p + 1] - data2[q + 1]);
+                    const db = Math.abs(data1[p + 2] - data2[q + 2]);
+                    const delta = dr + dg + db;
+
+                    const isMatch = delta <= threshold;
+
+                    if (highlight && isMatch) {
+                        // Совпадающие пиксели – яркая фуксия
+                        od[p] = 255;
+                        od[p + 1] = 0;
+                        od[p + 2] = 255;
+                        od[p + 3] = 255;
+                        samePixels++;
+                    } else {
+                        // Наложение с прозрачностью
+                        const a = alpha;
+                        od[p] = data1[p] * (1 - a) + data2[q] * a;
+                        od[p + 1] = data1[p + 1] * (1 - a) + data2[q + 1] * a;
+                        od[p + 2] = data1[p + 2] * (1 - a) + data2[q + 2] * a;
+                        od[p + 3] = 255;
+                        if (isMatch) samePixels++;
+                        else diffPixels++;
+                    }
+                }
+            }
+
+            ctx.putImageData(outData, 0, 0);
+
+            // Применяем масштаб
+            canvas.style.transform = 'scale(' + App.zoom + ')';
+            canvas.style.transformOrigin = 'center center';
+
+            UI.diff.innerHTML = '';
+            UI.diff.appendChild(canvas);
+
+            // Статистика
+            const total = w * h;
+            App.stats.diffPixels = diffPixels;
+            App.stats.samePixels = samePixels;
+            App.stats.matchPercent = total > 0 ? (samePixels / total) * 100 : 0;
+
+            updateMiniMap();
+        }
+
+        // ---- AUTO ALIGN (минимизация разности) ----
+        async function autoAlign() {
+            if (!App.canvas1 || !App.canvas2) return;
+            UI.autoAlign.disabled = true;
+            UI.autoAlign.textContent = 'Поиск...';
+            let bestScore = Number.MAX_SAFE_INTEGER;
+            let bestX = 0,
+                bestY = 0;
+            const STEP = 4,
+                RANGE = 150;
+            for (let y = -RANGE; y <= RANGE; y += STEP) {
+                for (let x = -RANGE; x <= RANGE; x += STEP) {
+                    const score = compareFast(x, y);
+                    if (score < bestScore) { bestScore = score;
+                        bestX = x;
+                        bestY = y; }
+                }
+                await new Promise(r => requestAnimationFrame(r));
+                UI.autoAlign.textContent = `Поиск ${Math.round((y + RANGE) / (2 * RANGE) * 100)}%`;
+            }
+            App.offsetX = bestX;
+            App.offsetY = bestY;
+            UI.offsetX.value = bestX;
+            UI.offsetY.value = bestY;
+            refreshCompare();
+            UI.autoAlign.disabled = false;
+            UI.autoAlign.textContent = '⚡ Авто';
+        }
+
+        function compareFast(dx, dy) {
+            const w = Math.min(App.canvas1.width, App.canvas2.width);
+            const h = Math.min(App.canvas1.height, App.canvas2.height);
+            const img1 = App.canvas1.getContext('2d').getImageData(0, 0, w, h).data;
+            const img2 = App.canvas2.getContext('2d').getImageData(0, 0, w, h).data;
+            let score = 0;
+            const SAMPLE = 6;
+            for (let y = 0; y < h; y += SAMPLE) {
+                for (let x = 0; x < w; x += SAMPLE) {
+                    const xx = x + dx,
+                        yy = y + dy;
+                    if (xx < 0 || yy < 0 || xx >= w || yy >= h) { score += 255; continue; }
+                    const p = (y * w + x) * 4,
+                        q = (yy * w + xx) * 4;
+                    score += Math.abs(img1[p] - img2[q]) + Math.abs(img1[p + 1] - img2[q + 1]) + Math.abs(img1[p + 2] -
+                        img2[q + 2]);
+                }
+            }
+            return score;
+        }
+
+        // ---- MAX ALIGN (максимизация совпадений) ----
+        async function maxAlign() {
+            if (!App.canvas1 || !App.canvas2) return;
+            UI.maxAlign.disabled = true;
+            UI.maxAlign.textContent = 'Поиск...';
+            let bestScore = -Infinity;
+            let bestX = 0,
+                bestY = 0;
+            const STEP = 4,
+                RANGE = 150;
+            const threshold = 30;
+            for (let y = -RANGE; y <= RANGE; y += STEP) {
+                for (let x = -RANGE; x <= RANGE; x += STEP) {
+                    const score = countMatches(x, y, threshold);
+                    if (score > bestScore) { bestScore = score;
+                        bestX = x;
+                        bestY = y; }
+                }
+                await new Promise(r => requestAnimationFrame(r));
+                UI.maxAlign.textContent = `Поиск ${Math.round((y + RANGE) / (2 * RANGE) * 100)}%`;
+            }
+            App.offsetX = bestX;
+            App.offsetY = bestY;
+            UI.offsetX.value = bestX;
+            UI.offsetY.value = bestY;
+            refreshCompare();
+            UI.maxAlign.disabled = false;
+            UI.maxAlign.textContent = '🎯 Макс. совпадение';
+        }
+
+        function countMatches(dx, dy, threshold) {
+            const w = Math.min(App.canvas1.width, App.canvas2.width);
+            const h = Math.min(App.canvas1.height, App.canvas2.height);
+            const img1 = App.canvas1.getContext('2d').getImageData(0, 0, w, h).data;
+            const img2 = App.canvas2.getContext('2d').getImageData(0, 0, w, h).data;
+            let matches = 0;
+            const SAMPLE = 6;
+            for (let y = 0; y < h; y += SAMPLE) {
+                for (let x = 0; x < w; x += SAMPLE) {
+                    const xx = x + dx,
+                        yy = y + dy;
+                    if (xx < 0 || yy < 0 || xx >= w || yy >= h) continue;
+                    const p = (y * w + x) * 4,
+                        q = (yy * w + xx) * 4;
+                    const dr = Math.abs(img1[p] - img2[q]);
+                    const dg = Math.abs(img1[p + 1] - img2[q + 1]);
+                    const db = Math.abs(img1[p + 2] - img2[q + 2]);
+                    if (dr + dg + db <= threshold) matches++;
+                }
+            }
+            return matches;
+        }
+
+        // ---- FULLSCREEN ----
+        function toggleFullscreen() {
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                App.fullscreen = true;
+            } else {
+                document.exitFullscreen();
+                App.fullscreen = false;
+            }
+        }
+
+        // ---- SYNCHRONOUS SCROLL (для canvas) ----
+        function enableSyncScroll() {
+            const panels = [UI.left, UI.diff, UI.right];
+            let lock = false;
+            panels.forEach(src => {
+                src.addEventListener('scroll', () => {
+                    if (lock) return;
+                    lock = true;
+                    panels.forEach(dst => {
+                        if (dst === src) return;
+                        dst.scrollTop = src.scrollTop;
+                        dst.scrollLeft = src.scrollLeft;
+                    });
+                    requestAnimationFrame(() => { lock = false; });
+                });
+            });
+        }
+
+        // ---- MINI MAP ----
+        function updateMiniMap() {
+            const mini = $('miniCanvas');
+            if (!mini) return;
+            const src = App.canvas1;
+            if (!src) { $('miniMap').classList.remove('active'); return; }
+            $('miniMap').classList.add('active');
+            const mw = 150,
+                mh = 200;
+            mini.width = mw;
+            mini.height = mh;
+            const ctx = mini.getContext('2d');
+            ctx.clearRect(0, 0, mw, mh);
+            ctx.drawImage(src, 0, 0, mw, mh);
+            const vp = $('miniViewport');
+            const wrapper = UI.diff;
+            const sw = wrapper.scrollWidth || 1,
+                sh = wrapper.scrollHeight || 1;
+            const cw = wrapper.clientWidth || 1,
+                ch = wrapper.clientHeight || 1;
+            const sx = wrapper.scrollLeft / sw,
+                sy = wrapper.scrollTop / sh;
+            const vw = Math.min(1, cw / sw),
+                vh = Math.min(1, ch / sh);
+            vp.style.left = (sx * mw) + 'px';
+            vp.style.top = (sy * mh) + 'px';
+            vp.style.width = (vw * mw) + 'px';
+            vp.style.height = (vh * mh) + 'px';
+        }
+
+        // ---- MAGNIFIER ----
+        function enableMagnifier() {
+            const mag = $('magnifier');
+            const magCanvas = $('magnifierCanvas');
+            UI.diff.addEventListener('mousemove', function(e) {
+                const canvas = UI.diff.querySelector('canvas');
+                if (!canvas) { mag.style.display = 'none'; return; }
+                const rect = canvas.getBoundingClientRect();
+                const z = App.zoom;
+                const x = (e.clientX - rect.left) / z;
+                const y = (e.clientY - rect.top) / z;
+                if (x < 0 || y < 0 || x > canvas.width || y > canvas.height) { mag.style.display = 'none'; return; }
+                mag.style.display = 'block';
+                magCanvas.width = 200;
+                magCanvas.height = 200;
+                const ctx = magCanvas.getContext('2d');
+                ctx.imageSmoothingEnabled = false;
+                ctx.clearRect(0, 0, 200, 200);
+                ctx.drawImage(canvas, x - 12, y - 12, 24, 24, 0, 0, 200, 200);
+            });
+            UI.diff.addEventListener('mouseleave', function() { mag.style.display = 'none'; });
+        }
+
+        // ---- ПАРСИНГ PDF (для canvas и текста) ----
+        async function parseDocument(file) {
+            const buffer = await file.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+            const pages = [];
+            let fullText = '';
+            const images = [];
+            const coords = [];
+            const loading = UI.loading;
+            loading.style.display = 'block';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                loading.textContent = Math.round((i / pdf.numPages) * 100) + '%';
+                const page = await pdf.getPage(i);
+                const viewport = page.getViewport({ scale: 1.5 });
+                const canvas = document.createElement('canvas');
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                await page.render({ canvasContext: canvas.getContext('2d'), viewport }).promise;
+                pages.push(canvas);
+
+                // Извлечение текста и изображений для текстового режима
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += `--- Страница ${i} ---\n${pageText}\n\n`;
+                for (const item of textContent.items) {
+                    if (item.str.trim()) {
+                        coords.push({ text: item.str, x: item.transform[4], y: item.transform[5], page: i });
+                    }
+                }
+                // Упрощённое извлечение изображений
+                const vp1 = page.getViewport({ scale: 1.0 });
+                const imgCanvas = document.createElement('canvas');
+                imgCanvas.width = vp1.width;
+                imgCanvas.height = vp1.height;
+                const imgCtx = imgCanvas.getContext('2d');
+                await page.render({ canvasContext: imgCtx, viewport: vp1 }).promise;
+                const imgData = imgCtx.getImageData(0, 0, imgCanvas.width, imgCanvas.height).data;
+                let hasImage = false;
+                for (let j = 0; j < imgData.length; j += 400) {
+                    const r = imgData[j],
+                        g = imgData[j + 1],
+                        b = imgData[j + 2];
+                    if (Math.abs(r - g) + Math.abs(g - b) + Math.abs(b - r) > 30 && r > 30 && r < 230) {
+                        hasImage = true;
+                        break;
+                    }
+                }
+                if (hasImage && imgCanvas.width > 50 && imgCanvas.height > 50) {
+                    const thumb = document.createElement('canvas');
+                    const max = 300;
+                    let w = imgCanvas.width,
+                        h = imgCanvas.height;
+                    if (w > h) { if (w > max) { h = h * max / w;
+                            w = max; } } else { if (h > max) { w = w * max / h;
+                            h = max; } }
+                    thumb.width = w;
+                    thumb.height = h;
+                    thumb.getContext('2d').drawImage(imgCanvas, 0, 0, w, h);
+                    images.push({ id: `img_${i}`, page: i, dataUrl: thumb.toDataURL('image/png'),
+                    label: `Стр. ${i}` });
+                }
+                await new Promise(r => requestAnimationFrame(r));
+            }
+            loading.style.display = 'none';
+            return { pdf, pages, text: fullText.trim(), images, coords };
+        }
+
+        // ---- ЗАГРУЗКА ФАЙЛОВ ----
+        async function handleFileUpload(file, side) {
+            if (!file) return;
+            const result = await parseDocument(file);
+            if (side === 1) {
+                App.pdf1 = result.pdf;
+                App.pages1 = result.pages;
+                App.text1 = result.text;
+                App.images1 = result.images;
+                App.coords1 = result.coords || [];
+                $('file1name').textContent = file.name;
+            } else {
+                App.pdf2 = result.pdf;
+                App.pages2 = result.pages;
+                App.text2 = result.text;
+                App.images2 = result.images;
+                App.coords2 = result.coords || [];
+                $('file2name').textContent = file.name;
+            }
+            App.pageCount = Math.min(
+                App.pages1.length || 999,
+                App.pages2.length || 999
+            );
+            if (App.pageCount === 0) App.pageCount = Math.max(App.pages1.length, App.pages2.length);
+            if (App.pageCount === 0) App.pageCount = 1;
+            App.currentPage = 1;
+            loadPage(1);
+            if (App.mode === 'text') renderTextDiff();
+        }
+
+        function loadPage(index) {
+            App.currentPage = index;
+            App.canvas1 = App.pages1[index - 1] || null;
+            App.canvas2 = App.pages2[index - 1] || null;
+            showCanvas(App.canvas1, UI.left);
+            showCanvas(App.canvas2, UI.right);
+            if (App.mode === 'overlay') refreshCompare();
+            updatePageLabel();
+            updateMiniMap();
+        }
+
+        // ---- ЭКСПОРТ ----
+        function exportPNG() {
+            const canvas = UI.diff.querySelector('canvas');
+            if (!canvas) return;
+            const a = document.createElement('a');
+            a.download = 'comparison.png';
+            a.href = canvas.toDataURL('image/png');
+            a.click();
+        }
+
+        function exportReport() {
+            const canvas = UI.diff.querySelector('canvas');
+            if (!canvas) return;
+            const dataUrl = canvas.toDataURL('image/png');
+            const report = `<html><head><meta charset="UTF-8"><title>Отчёт сравнения</title></head>
+            <body style="font-family:sans-serif; background:#0b1017; color:#e8edf5; padding:20px;">
+            <h1>Отчёт сравнения PDF</h1>
+            <p>Совпадение: ${App.stats.matchPercent.toFixed(2)}%</p>
+            <p>Различий: ${App.stats.diffPixels}</p>
+            <p>Режим: ${App.mode}</p>
+            <p>Смещение X: ${App.offsetX}, Y: ${App.offsetY}</p>
+            <p>Масштаб: ${Math.round(App.zoom*100)}%</p>
+            <p>Страница: ${App.currentPage}/${App.pageCount}</p>
+            <img src="${dataUrl}" style="max-width:100%; border:1px solid #2a3344; border-radius:8px;" />
+            </body></html>`;
+            const blob = new Blob([report], { type: 'text/html' });
+            const a = document.createElement('a');
+            a.download = 'report.html';
+            a.href = URL.createObjectURL(blob);
+            a.click();
+        }
+
+        // ============================================================
+        // ТЕКСТОВЫЙ РЕЖИМ (без изменений)
+        // ============================================================
+        function normalizeText(text) {
+            return text.replace(/\r\n/g, '\n').replace(/[—–-]/g, '-').replace(/\s+/g, ' ').replace(/[«»"]/g, '"').trim();
+        }
+
+        function paragraphScore(a, b) {
+            if (!a || !b) return 0;
+            if (a === b) return 1;
+            const wa = a.split(/\s+/),
+                wb = b.split(/\s+/);
+            if (!wa.length || !wb.length) return 0;
+            const common = wa.filter(w => wb.includes(w)).length;
+            return common / Math.max(wa.length, wb.length);
+        }
+
+        function buildSpatialDiff(coords1, coords2, text1, text2) {
+            if (!coords1.length || !coords2.length) return fallbackLCS(text1, text2);
+
+            function group(coords) {
+                const map = {};
+                for (const c of coords) {
+                    const key = `${c.page}-${Math.round(c.y)}`;
+                    if (!map[key]) map[key] = [];
+                    map[key].push(c.text);
+                }
+                return Object.entries(map).map(([k, v]) => {
+                    const [p, y] = k.split('-').map(Number);
+                    return { page: p, y, text: v.join(' ') };
+                }).sort((a, b) => a.page - b.page || a.y - b.y);
+            }
+            const g1 = group(coords1),
+                g2 = group(coords2);
+            const n = g1.length,
+                m = g2.length;
+            const dp = Array(n + 1).fill(null).map(() => Array(m + 1).fill(0));
+            for (let i = 1; i <= n; i++)
+                for (let j = 1; j <= m; j++) {
+                    const match = g1[i - 1].text.trim() === g2[j - 1].text.trim() ? 1 : 0;
+                    dp[i][j] = Math.max(dp[i - 1][j - 1] + match, dp[i - 1][j], dp[i][j - 1]);
+                }
+            const res = [];
+            let i = n,
+                j = m;
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && paragraphScore(g1[i - 1].text, g2[j - 1].text) >= 0.65) {
+                    if (g1[i - 1].text.trim() === g2[j - 1].text.trim())
+                        res.unshift({ type: 'same', left: g1[i - 1].text, right: g2[j - 1].text, page: g1[i - 1]
+                            .page });
+                    else
+                        res.unshift({ type: 'changed', left: g1[i - 1].text, right: g2[j - 1].text, page: g1[i - 1]
+                            .page });
+                    i--;
+                    j--;
+                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                    res.unshift({ type: 'added', left: '', right: g2[j - 1].text, page: g2[j - 1].page });
+                    j--;
+                } else {
+                    res.unshift({ type: 'deleted', left: g1[i - 1].text, right: '', page: g1[i - 1].page });
+                    i--;
+                }
+            }
+            return res;
+        }
+
+        function fallbackLCS(t1, t2) {
+            const l1 = t1.split('\n'),
+                l2 = t2.split('\n');
+            const dp = Array(l1.length + 1).fill(null).map(() => Array(l2.length + 1).fill(0));
+            for (let i = 1; i <= l1.length; i++)
+                for (let j = 1; j <= l2.length; j++) {
+                    if (l1[i - 1].trim() === l2[j - 1].trim()) dp[i][j] = dp[i - 1][j - 1] + 1;
+                    else dp[i][j] = Math.max(dp[i - 1][j], dp[i][j - 1]);
+                }
+            const res = [];
+            let i = l1.length,
+                j = l2.length;
+            while (i > 0 || j > 0) {
+                if (i > 0 && j > 0 && l1[i - 1].trim() === l2[j - 1].trim()) {
+                    res.unshift({ type: 'same', left: l1[i - 1], right: l2[j - 1] });
+                    i--;
+                    j--;
+                } else if (j > 0 && (i === 0 || dp[i][j - 1] >= dp[i - 1][j])) {
+                    res.unshift({ type: 'added', left: '', right: l2[j - 1] });
+                    j--;
+                } else {
+                    res.unshift({ type: 'deleted', left: l1[i - 1], right: '' });
+                    i--;
+                }
+            }
+            return res;
+        }
+
+        function renderTextDiff() {
+            if (!App.text1 || !App.text2) {
+                UI.textLeft.innerHTML = '<div class="placeholder">Загрузите документ №1</div>';
+                UI.textRight.innerHTML = '<div class="placeholder">Загрузите документ №2</div>';
+                UI.textDiff.innerHTML = '<div class="placeholder">Загрузите оба документа</div>';
+                return;
+            }
+            const diffs = buildSpatialDiff(App.coords1, App.coords2, App.text1, App.text2);
+            App.diffs = diffs;
+
+            let h1 = '',
+                h2 = '',
+                hDiff = '';
+            let countS = 0,
+                countD = 0,
+                countA = 0,
+                countC = 0;
+            const img1 = new Map(App.images1.map(i => [i.page, i]));
+            const img2 = new Map(App.images2.map(i => [i.page, i]));
+            let lastPage = 0;
+
+            diffs.forEach((d, idx) => {
+                const page = d.page || 0;
+                const left = d.left || '',
+                    right = d.right || '';
+                const type = d.type;
+
+                if (page !== lastPage && page > 0) {
+                    const sep = `--- Страница ${page} ---`;
+                    const sepLine =
+                    `<div class="text-line same" style="opacity:0.5;">${escapeHtml(sep)}</div>`;
+                    h1 += sepLine;
+                    h2 += sepLine;
+                    hDiff += sepLine;
+                    const i1 = img1.get(page),
+                        i2 = img2.get(page);
+                    if (i1?.dataUrl) {
+                        const cls = i2 ? 'same' : 'deleted';
+                        const bdg = i2 ? '✅ Совпадает' : '❌ Удалено';
+                        const imgHtml =
+                            `<div class="image-block ${cls}"><div class="image-badge ${cls}">${bdg}</div><img src="${i1.dataUrl}"/><div class="image-label">${i1.label}</div></div>`;
+                        h1 += imgHtml;
+                        if (!i2) h2 +=
+                            `<div class="image-block deleted" style="opacity:0.2;border-color:#444;"><div class="image-badge deleted">❌ Удалено</div><div style="height:100px;display:flex;align-items:center;justify-content:center;color:#444;">[Изображение отсутствует]</div></div>`;
+                        hDiff += imgHtml;
+                    }
+                    if (i2?.dataUrl && !i1) {
+                        const cls = 'added';
+                        const bdg = '🆕 Добавлено';
+                        const imgHtml =
+                            `<div class="image-block ${cls}"><div class="image-badge ${cls}">${bdg}</div><img src="${i2.dataUrl}"/><div class="image-label">${i2.label}</div></div>`;
+                        h2 += imgHtml;
+                        h1 +=
+                            `<div class="image-block added" style="opacity:0.2;border-color:#444;"><div class="image-badge added">🆕 Добавлено</div><div style="height:100px;display:flex;align-items:center;justify-content:center;color:#444;">[Изображение добавлено]</div></div>`;
+                        hDiff += imgHtml;
+                    }
+                    lastPage = page;
+                }
+
+                const cls = type;
+                if (type === 'same') countS += left.length;
+                else if (type === 'deleted') countD += left.length;
+                else if (type === 'added') countA += right.length;
+                else if (type === 'changed') countC += left.length + right.length;
+
+                const line1 = `<div class="text-line ${cls}" data-diff-idx="${idx}">${escapeHtml(left)}</div>`;
+                const line2 = `<div class="text-line ${cls}" data-diff-idx="${idx}">${escapeHtml(right)}</div>`;
+                h1 += line1;
+                h2 += line2;
+                if (type === 'same') hDiff += `<div class="text-line same">${escapeHtml(left)}</div>`;
+                else if (type === 'deleted') hDiff += `<div class="text-line deleted">${escapeHtml(left)}</div>`;
+                else if (type === 'added') hDiff += `<div class="text-line added">${escapeHtml(right)}</div>`;
+                else if (type === 'changed')
+                    hDiff += `<div class="text-line changed">${escapeHtml(left)} → ${escapeHtml(right)}</div>`;
+            });
+
+            UI.textLeft.innerHTML = h1 || '<div class="placeholder">Пустой документ</div>';
+            UI.textRight.innerHTML = h2 || '<div class="placeholder">Пустой документ</div>';
+            UI.textDiff.innerHTML = hDiff || '<div class="placeholder">Нет изменений</div>';
+
+            const total = countS + countD + countA + countC;
+            UI.match.textContent = total > 0 ? (countS / total * 100).toFixed(1) + '%' : '100%';
+            UI.count.textContent = countD + countA + countC;
+            UI.modeLabel.textContent = 'Текст';
+            setTimeout(() => drawArrows(), 100);
+        }
+
+        function drawArrows() {
+            const svg = UI.svgLayer;
+            const container = UI.viewer;
+            svg.innerHTML = '';
+            if (!App.diffs.length) return;
+
+            const panel1 = UI.textLeft,
+                panel2 = UI.textRight;
+            const els1 = panel1.querySelectorAll('[data-diff-idx]');
+            const els2 = panel2.querySelectorAll('[data-diff-idx]');
+            const map1 = new Map(),
+                map2 = new Map();
+            els1.forEach(el => map1.set(parseInt(el.dataset.diffIdx), el));
+            els2.forEach(el => map2.set(parseInt(el.dataset.diffIdx), el));
+
+            function getElementCenter(el, panel) {
+                if (!el) return null;
+                const elRect = el.getBoundingClientRect();
+                const containerRect = container.getBoundingClientRect();
+                return {
+                    x: (elRect.left + elRect.right) / 2 - containerRect.left,
+                    y: (elRect.top + elRect.bottom) / 2 - containerRect.top,
+                    left: elRect.left - containerRect.left,
+                    right: elRect.right - containerRect.left,
+                };
+            }
+
+            function isVisible(el, panel) {
+                if (!el) return false;
+                const rect = el.getBoundingClientRect();
+                const panelRect = panel.getBoundingClientRect();
+                const top = rect.top - panelRect.top,
+                    bottom = rect.bottom - panelRect.top;
+                const height = panel.clientHeight;
+                const center = (top + bottom) / 2;
+                return center > -50 && center < height + 50;
+            }
+
+            const lines = [];
+            const containerRect = container.getBoundingClientRect();
+            for (let i = 0; i < App.diffs.length; i++) {
+                const d = App.diffs[i];
+                if (d.type === 'same') continue;
+                const el1 = map1.get(i),
+                    el2 = map2.get(i);
+                const v1 = el1 ? isVisible(el1, panel1) : false;
+                const v2 = el2 ? isVisible(el2, panel2) : false;
+                if (d.type === 'changed' && (!v1 || !v2)) continue;
+                if (d.type === 'deleted' && !v1) continue;
+                if (d.type === 'added' && !v2) continue;
+                let x1, y1, x2, y2;
+                const arrowClass = `arrow-${d.type}`;
+                if (d.type === 'deleted') {
+                    if (!el1) continue;
+                    const c = getElementCenter(el1, panel1);
+                    if (!c) continue;
+                    const panel1Rect = panel1.getBoundingClientRect();
+                    x1 = c.right + 5;
+                    y1 = c.y;
+                    x2 = panel1Rect.right - containerRect.left - 20;
+                    y2 = c.y;
+                    lines.push(
+                        `<text x="${(x1+x2)/2}" y="${y1-10}" fill="var(--line-deleted)" font-size="10" font-weight="bold" text-anchor="middle">✕</text>`
+                        );
+                } else if (d.type === 'added') {
+                    if (!el2) continue;
+                    const c = getElementCenter(el2, panel2);
+                    if (!c) continue;
+                    const panel2Rect = panel2.getBoundingClientRect();
+                    x1 = panel2Rect.left - containerRect.left + 20;
+                    y1 = c.y;
+                    x2 = c.left - 5;
+                    y2 = c.y;
+                    lines.push(
+                        `<text x="${(x1+x2)/2}" y="${y1-10}" fill="var(--line-added)" font-size="10" font-weight="bold" text-anchor="middle">➕</text>`
+                        );
+                } else if (d.type === 'changed') {
+                    if (!el1 || !el2) continue;
+                    const c1 = getElementCenter(el1, panel1);
+                    const c2 = getElementCenter(el2, panel2);
+                    if (!c1 || !c2) continue;
+                    x1 = c1.right + 2;
+                    y1 = c1.y;
+                    x2 = c2.left - 2;
+                    y2 = c2.y;
+                    const midX = (x1 + x2) / 2,
+                        midY = (y1 + y2) / 2 - 15;
+                    lines.push(
+                        `<text x="${midX}" y="${midY}" fill="var(--line-changed)" font-size="10" font-weight="bold" text-anchor="middle">⚡</text>`
+                        );
+                }
+                if (x1 !== undefined && y1 !== undefined && x2 !== undefined && y2 !== undefined) {
+                    const dx = x2 - x1,
+                        dy = y2 - y1;
+                    if (Math.sqrt(dx * dx + dy * dy) > 10) {
+                        lines.push(
+                            `<path d="M ${x1} ${y1} L ${x2} ${y2}" class="${arrowClass}" marker-end="url(#arrowHead-${d.type})"/>`
+                            );
+                    }
+                }
+            }
+            const markers = `
+                <defs>
+                    <marker id="arrowHead-changed" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto">
+                        <path d="M 0 0 L 12 6 L 0 12 z" fill="var(--line-changed)"/>
+                    </marker>
+                    <marker id="arrowHead-deleted" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto">
+                        <path d="M 0 0 L 12 6 L 0 12 z" fill="var(--line-deleted)"/>
+                    </marker>
+                    <marker id="arrowHead-added" viewBox="0 0 12 12" refX="10" refY="6" markerWidth="8" markerHeight="8" orient="auto">
+                        <path d="M 0 0 L 12 6 L 0 12 z" fill="var(--line-added)"/>
+                    </marker>
+                </defs>
+            `;
+            svg.innerHTML = markers + lines.join('');
+            if (lines.length === 0) {
+                svg.innerHTML = markers +
+                    `<text x="50%" y="50%" fill="var(--muted)" font-size="14" text-anchor="middle">Нет видимых изменений</text>`;
+            }
+        }
+
+        // ============================================================
+        // ПЕРЕКЛЮЧЕНИЕ РЕЖИМОВ
+        // ============================================================
+        function switchMode(mode) {
+            App.mode = mode;
+            UI.viewer.classList.remove('mode-overlay', 'mode-text');
+            UI.viewer.classList.add('mode-' + mode);
+            UI.modeLabel.textContent = mode === 'overlay' ? 'Overlay' : 'Текст';
+            if (mode === 'overlay') {
+                refreshCompare();
+            } else {
+                renderTextDiff();
+            }
+        }
+
+        // ============================================================
+        // ИНИЦИАЛИЗАЦИЯ
+        // ============================================================
+        document.addEventListener('DOMContentLoaded', function() {
+            // Обработчики UI
+            UI.offsetX.oninput = function(e) {
+                App.offsetX = parseInt(e.target.value);
+                if (App.mode === 'overlay') refreshCompare();
+                updateToolbar();
+            };
+            UI.offsetY.oninput = function(e) {
+                App.offsetY = parseInt(e.target.value);
+                if (App.mode === 'overlay') refreshCompare();
+                updateToolbar();
+            };
+            UI.zoomSelect.onchange = function() {
+                if (this.value === 'custom') {
+                    UI.zoomCustom.style.display = 'inline-block';
+                    UI.zoomCustom.focus();
+                    App.zoom = parseFloat(UI.zoomCustom.value) || 1;
+                } else {
+                    UI.zoomCustom.style.display = 'none';
+                    App.zoom = parseFloat(this.value);
+                }
+                updateZoom();
+            };
+            UI.zoomCustom.oninput = function() {
+                let val = parseFloat(this.value);
+                if (!isNaN(val) && val > 0) {
+                    App.zoom = val;
+                    updateZoom();
+                    let found = false;
+                    for (let opt of UI.zoomSelect.options) {
+                        if (opt.value !== 'custom' && Math.abs(parseFloat(opt.value) - val) < 0.001) {
+                            UI.zoomSelect.value = opt.value;
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) UI.zoomSelect.value = 'custom';
+                }
+            };
+            UI.compareMode.onchange = function() {
+                switchMode(this.value);
+            };
+            UI.alpha.oninput = function() {
+                App.overlayAlpha = parseInt(this.value) / 100;
+                UI.alphaValue.textContent = this.value + '%';
+                if (App.mode === 'overlay') refreshCompare();
+            };
+            UI.highlightMatch.onchange = function() {
+                App.highlightMatch = this.checked;
+                if (App.mode === 'overlay') refreshCompare();
+            };
+            UI.reset.onclick = function() { location.reload(); };
+            UI.autoAlign.onclick = autoAlign;
+            UI.maxAlign.onclick = maxAlign;
+            UI.fullscreen.onclick = toggleFullscreen;
+            UI.savePNG.onclick = exportPNG;
+            UI.exportReport.onclick = exportReport;
+
+            UI.prevPage.onclick = function() {
+                if (App.currentPage > 1) loadPage(App.currentPage - 1);
+            };
+            UI.nextPage.onclick = function() {
+                if (App.currentPage < App.pageCount) loadPage(App.currentPage + 1);
+            };
+            UI.pageSelect.onchange = function() {
+                loadPage(parseInt(this.value));
+            };
+
+            // Загрузка файлов
+            $('fileInput1').addEventListener('change', function(e) {
+                if (this.files[0]) handleFileUpload(this.files[0], 1);
+            });
+            $('fileInput2').addEventListener('change', function(e) {
+                if (this.files[0]) handleFileUpload(this.files[0], 2);
+            });
+
+            // Горячие клавиши
+            document.addEventListener('keydown', function(e) {
+                const step = e.shiftKey ? 10 : 1;
+                switch (e.key) {
+                    case 'ArrowLeft':
+                        App.offsetX -= step;
+                        break;
+                    case 'ArrowRight':
+                        App.offsetX += step;
+                        break;
+                    case 'ArrowUp':
+                        App.offsetY -= step;
+                        break;
+                    case 'ArrowDown':
+                        App.offsetY += step;
+                        break;
+                    case 'f':
+                        toggleFullscreen();
+                        return;
+                    case 'a':
+                        autoAlign();
+                        return;
+                    case 'm':
+                        maxAlign();
+                        return;
+                    default:
+                        return;
+                }
+                UI.offsetX.value = App.offsetX;
+                UI.offsetY.value = App.offsetY;
+                if (App.mode === 'overlay') refreshCompare();
+                updateToolbar();
+            });
+
+            // Масштаб колесом мыши
+            UI.viewer.addEventListener('wheel', function(e) {
+                if (!e.ctrlKey) return;
+                e.preventDefault();
+                if (e.deltaY < 0) App.zoom *= 1.1;
+                else App.zoom /= 1.1;
+                App.zoom = Math.max(0.1, Math.min(App.zoom, 10));
+                updateZoom();
+                // синхронизация select
+                let found = false;
+                for (let opt of UI.zoomSelect.options) {
+                    if (opt.value !== 'custom' && Math.abs(parseFloat(opt.value) - App.zoom) < 0.001) {
+                        UI.zoomSelect.value = opt.value;
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    UI.zoomSelect.value = 'custom';
+                    UI.zoomCustom.style.display = 'inline-block';
+                    UI.zoomCustom.value = App.zoom;
+                } else {
+                    UI.zoomCustom.style.display = 'none';
+                }
+            }, { passive: false });
+
+            // Синхронный скролл для canvas
+            enableSyncScroll();
+            // Лупа
+            enableMagnifier();
+
+            // Синхронизация скролла для текстового режима
+            UI.textLeft.addEventListener('scroll', function() {
+                if (App.scrollLock) return;
+                App.scrollLock = true;
+                UI.textRight.scrollTop = this.scrollTop;
+                UI.textDiff.scrollTop = this.scrollTop;
+                requestAnimationFrame(() => { App.scrollLock = false; });
+            });
+            UI.textRight.addEventListener('scroll', function() {
+                if (App.scrollLock) return;
+                App.scrollLock = true;
+                UI.textLeft.scrollTop = this.scrollTop;
+                UI.textDiff.scrollTop = this.scrollTop;
+                requestAnimationFrame(() => { App.scrollLock = false; });
+            });
+            UI.textDiff.addEventListener('scroll', function() {
+                if (App.scrollLock) return;
+                App.scrollLock = true;
+                UI.textLeft.scrollTop = this.scrollTop;
+                UI.textRight.scrollTop = this.scrollTop;
+                requestAnimationFrame(() => { App.scrollLock = false; });
+            });
+
+            // Начальное состояние
+            App.mode = 'overlay';
+            UI.viewer.classList.add('mode-overlay');
+            updateToolbar();
+            console.log('PDF Compare Pro (Overlay + Text) готов.');
+        });
+    </script>
+</body>
+</html>
