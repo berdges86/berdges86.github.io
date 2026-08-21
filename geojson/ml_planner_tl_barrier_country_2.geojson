@@ -39,7 +39,7 @@
     {"type": "Feature", "properties": {"id": 36, "name": "36", "title": "Point 36"}, "geometry": {"type": "Point", "coordinates": [37.559775, 55.727020]}},
     {"type": "Feature", "properties": {"id": 37, "name": "37", "title": "Point 37"}, "geometry": {"type": "Point", "coordinates": [37.559911, 55.726794]}},
     {"type": "Feature", "properties": {"id": 38, "name": "38", "title": "Point 38"}, "geometry": {"type": "Point", "coordinates": [37.560483, 55.727096]}},
-    {"type": "Feature", "properties": {"id": 39, "name": "39", "title": "Point 39"}, "geometry": {"type": "Point", "coordinates": [37.560990, 55.727084]}},
+    {"type": "Feature", "properties": {"id": 39, "name": "39", "title": "Point 39"}, "geometry": {"type": "Point", "coordinates": [37.561688, 55.726491]}},
     {"type": "Feature", "properties": {"id": 40, "name": "40", "title": "Point 40"}, "geometry": {"type": "Point", "coordinates": [37.562881, 55.726491]}},
     {"type": "Feature", "properties": {"id": 41, "name": "41", "title": "Point 41"}, "geometry": {"type": "Point", "coordinates": [37.563150, 55.726226]}},
     {"type": "Feature", "properties": {"id": 42, "name": "42", "title": "Point 42"}, "geometry": {"type": "Point", "coordinates": [37.563547, 55.725960]}},
