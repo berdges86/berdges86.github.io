@@ -8,6 +8,10 @@
         * { margin: 0; padding: 0; box-sizing: border-box; }
         html, body, #map { width: 100%; height: 100%; }
 
+        /* ---------- Карта / курсоры ---------- */
+        #map { cursor: default; }
+        #map.map-crosshair { cursor: crosshair !important; }
+
         /* ---------- Общие панели ---------- */
         .controls-panel {
             position: absolute;
@@ -76,8 +80,6 @@
             padding: 2px 8px; font-size: 11px; cursor: pointer;
         }
         .remove-layer:hover { background: #c0392b; }
-
-        /* NEW: actions row inside a layer item */
         .layer-actions {
             padding-left: 28px;
             margin-top: 6px;
@@ -86,14 +88,8 @@
             flex-wrap: wrap;
         }
         .layer-actions button {
-            background: #fc3f1d;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 11px;
-            cursor: pointer;
-            font-weight: 600;
+            background: #fc3f1d; color: white; border: none; border-radius: 4px;
+            padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: 600;
         }
         .layer-actions button:hover { background: #d63312; }
 
@@ -121,17 +117,13 @@
         /* ---------- Панель маршрута ---------- */
         .route-panel {
             position: absolute;
-            top: 10px;
-            left: 10px;
-            width: 320px;
-            background: white;
-            border-radius: 8px;
+            top: 10px; left: 10px; width: 330px;
+            background: white; border-radius: 8px;
             box-shadow: 0 2px 10px rgba(0,0,0,0.3);
             z-index: 100;
             font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
             font-size: 13px;
-            display: flex;
-            flex-direction: column;
+            display: flex; flex-direction: column;
             max-height: calc(100vh - 20px);
         }
         .route-panel .panel-header { background: #8e44ad; }
@@ -167,6 +159,15 @@
         }
         .clear-btn:hover { background: #c0392b; }
 
+        .from-link-btn {
+            width: 100%; padding: 9px;
+            background: #3498db; color: white;
+            border: none; border-radius: 5px; cursor: pointer;
+            font-weight: 600; font-size: 12.5px;
+            transition: background .2s;
+        }
+        .from-link-btn:hover { background: #2980b9; }
+
         .route-stats {
             display: flex; justify-content: space-between;
             background: #f4f6f7; border-radius: 5px; padding: 8px 10px;
@@ -175,16 +176,29 @@
         .route-stats b { color: #8e44ad; }
 
         .route-points {
-            max-height: 220px; overflow-y: auto;
+            max-height: 260px; overflow-y: auto;
             border-radius: 5px; padding-right: 2px;
+            scrollbar-width: thin;
         }
         .point-row {
-            display: flex; align-items: center; gap: 8px;
+            display: flex; align-items: center; gap: 6px;
             padding: 6px 8px; background: #f8f9fa; border-radius: 5px;
             margin-bottom: 5px; cursor: pointer;
-            border-left: 3px solid #e74c3c; transition: background .15s;
+            border-left: 3px solid #e74c3c; transition: background .15s, opacity .15s;
+            user-select: none;
         }
         .point-row:hover { background: #eef2f5; }
+        .point-row.dragging { opacity: 0.4; }
+        .point-row.drag-over {
+            background: #fdebd0 !important;
+            border-left-color: #e67e22;
+        }
+        .point-handle {
+            cursor: grab; color: #95a5a6; font-size: 14px;
+            line-height: 1; padding: 0 2px;
+            user-select: none;
+        }
+        .point-handle:active { cursor: grabbing; }
         .point-index {
             flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
             background: #e74c3c; color: white; display: flex;
@@ -193,12 +207,20 @@
         }
         .point-coords {
             flex: 1; font-family: monospace; font-size: 11px; color: #34495e;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
         }
-        .point-del {
-            background: #e74c3c; color: white; border: none; border-radius: 3px;
-            padding: 2px 7px; font-size: 10px; cursor: pointer;
+        .point-actions { display: flex; gap: 3px; }
+        .point-actions button {
+            background: #ecf0f1; border: 1px solid #dfe4e6; border-radius: 3px;
+            padding: 1px 5px; font-size: 10px; cursor: pointer; color: #2c3e50;
+            line-height: 1.2;
         }
-        .point-del:hover { background: #c0392b; }
+        .point-actions button:hover { background: #dfe4e6; }
+        .point-actions .point-del {
+            background: #e74c3c; border-color: #e74c3c; color: white;
+        }
+        .point-actions .point-del:hover { background: #c0392b; border-color: #c0392b; }
+
         .route-empty { text-align: center; color: #999; font-size: 11px; padding: 14px; }
 
         .export-btn {
@@ -209,16 +231,96 @@
         .export-btn:hover { background: #71368a; }
         .export-btn:disabled { background: #bdc3c7; cursor: not-allowed; }
 
-        /* NEW: Yandex link button */
         .yandex-btn {
             width: 100%; padding: 11px; background: #fc3f1d; color: white;
             border: none; border-radius: 5px; cursor: pointer;
             font-weight: bold; font-size: 13px; transition: background .2s;
-            margin-top: 6px;
             display: flex; align-items: center; justify-content: center; gap: 6px;
         }
         .yandex-btn:hover { background: #d63312; }
         .yandex-btn:active { transform: scale(0.99); }
+
+        /* ---------- Модальное окно ---------- */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15, 23, 32, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            animation: fadeIn .18s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(12px) scale(.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal {
+            background: #fff; border-radius: 14px;
+            width: 100%; max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.35);
+            font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            animation: popIn .22s ease;
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+        }
+        .modal-header h3 { font-size: 15px; font-weight: 700; }
+        .modal-close {
+            background: rgba(255,255,255,.15); border: none;
+            color: white; width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; font-size: 14px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,.3); }
+        .modal-body { padding: 18px 20px 10px; }
+        .modal-hint {
+            font-size: 12.5px; color: #566573; margin-bottom: 10px;
+            line-height: 1.45;
+        }
+        .modal-hint code {
+            background: #eef2f5; padding: 1px 5px; border-radius: 3px;
+            font-size: 11.5px; color: #c0392b;
+        }
+        .modal-textarea {
+            width: 100%; min-height: 110px; resize: vertical;
+            padding: 11px 12px; border: 1.5px solid #dfe4e6; border-radius: 8px;
+            font-family: ui-monospace, 'Consolas', monospace; font-size: 11.5px;
+            color: #2c3e50; line-height: 1.45;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .modal-textarea:focus {
+            outline: none; border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,.15);
+        }
+        .modal-status {
+            font-size: 12px; min-height: 18px; margin-top: 8px;
+            color: #27ae60; font-weight: 500;
+        }
+        .modal-status.err { color: #c0392b; }
+        .modal-footer {
+            display: flex; gap: 8px; justify-content: flex-end;
+            padding: 12px 20px 18px; flex-wrap: wrap;
+        }
+        .modal-btn {
+            padding: 9px 16px; border: none; border-radius: 7px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: background .15s, transform .1s;
+            font-family: inherit;
+        }
+        .modal-btn:active { transform: scale(0.97); }
+        .modal-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .modal-btn-cancel  { background: #ecf0f1; color: #2c3e50; }
+        .modal-btn-cancel:hover { background: #dfe4e6; }
+        .modal-btn-add     { background: #27ae60; color: white; }
+        .modal-btn-add:hover { background: #229954; }
+        .modal-btn-replace { background: #e67e22; color: white; }
+        .modal-btn-replace:hover { background: #d35400; }
     </style>
 </head>
 <body>
@@ -242,6 +344,8 @@
             <button class="clear-btn" id="clearRouteBtn">🗑 Очистить</button>
         </div>
 
+        <button class="from-link-btn" id="fromLinkBtn">📎 Загрузить из ссылки Яндекс.Карт</button>
+
         <div class="route-stats">
             <span>📍 Точек: <b id="routePointCount">0</b></span>
             <span>📏 Длина: <b id="routeDistance">0 м</b></span>
@@ -255,7 +359,8 @@
         <div class="help-text">
             🖱 Клик по карте — добавить точку<br>
             ✋ Точку можно перетаскивать мышью<br>
-            📋 Клик по строке в списке — центрировать карту
+            ☰ Строки можно менять местами (drag&drop или ▲▼)<br>
+            🖱 ЛКМ по карте — сдвиг карты (стандартно)
         </div>
         <div class="status" id="routeStatus"></div>
     </div>
@@ -287,6 +392,30 @@
 
 <button class="geolocation-btn" id="geolocationBtn" title="Определить моё местоположение">🤖</button>
 
+<!-- ==================== МОДАЛЬНОЕ ОКНО: ПАРСЕР ССЫЛКИ ==================== -->
+<div class="modal-overlay" id="linkModal" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3>📎 Загрузить маршрут из ссылки Яндекс.Карт</h3>
+            <button class="modal-close" id="modalClose" title="Закрыть">✕</button>
+        </div>
+        <div class="modal-body">
+            <p class="modal-hint">
+                Вставьте ссылку, содержащую параметр <code>rtext=</code>
+                (например, полученную кнопкой «🔗 Ссылка для Яндекс.Карт»):
+            </p>
+            <textarea id="linkInput" class="modal-textarea"
+                placeholder="https://yandex.ru/maps/?ll=...&rtext=55.742621,37.578078~55.742550,37.577622~...&z=15"></textarea>
+            <div class="modal-status" id="modalStatus"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" id="modalCancel">Отмена</button>
+            <button class="modal-btn modal-btn-add" id="modalAdd" disabled>➕ Добавить к маршруту</button>
+            <button class="modal-btn modal-btn-replace" id="modalReplace" disabled>🔄 Заменить маршрут</button>
+        </div>
+    </div>
+</div>
+
 <script src="https://api-maps.yandex.ru/2.1/?apikey=7d63d6f0-6df2-475f-a7cd-4354a87ce87b&lang=ru_RU"></script>
 <script src="https://yandex.st/jquery/2.2.3/jquery.min.js"></script>
 
@@ -302,6 +431,7 @@
     let routePoints = [];        // [{ lat, lon, placemark }]
     let routePolyline = null;
     let addMode = true;
+    let draggedIdx = null;
 
     const ROUTE_COLOR = '#e74c3c';
 
@@ -375,35 +505,22 @@
     }
 
     /* =========================================================
-       ЯНДЕКС.КАРТЫ: ГЕНЕРАЦИЯ ССЫЛКИ + КОПИРОВАНИЕ
+       ЯНДЕКС.КАРТЫ: ССЫЛКА + КОПИРОВАНИЕ
        ========================================================= */
-    /**
-     * Строит ссылку вида:
-     * https://yandex.ru/maps/?ll=LON%2CLAT&mode=routes&rtext=LAT%2CLON~LAT%2CLON...&rtt=sc&ruri=~~~&z=15
-     */
     function buildYandexMapsUrl(points, zoom = 15) {
         if (!points || points.length === 0) return null;
-
-        // Центр карты — среднее арифметическое всех точек
         let sumLat = 0, sumLon = 0;
         points.forEach(p => { sumLat += p.lat; sumLon += p.lon; });
         const cLat = sumLat / points.length;
         const cLon = sumLon / points.length;
-
         const ll = `${cLon.toFixed(6)}%2C${cLat.toFixed(6)}`;
-
-        // rtext: LAT,LON через ~ (в URL кодируем запятую как %2C)
         const rtext = points
             .map(p => `${p.lat.toFixed(6)}%2C${p.lon.toFixed(6)}`)
             .join('~');
-
-        // ruri: пустые точки, по одной на каждую точку маршрута
         const ruri = '~'.repeat(points.length);
-
         return `https://yandex.ru/maps/?ll=${ll}&mode=routes&rtext=${rtext}&rtt=sc&ruri=${ruri}&z=${zoom}`;
     }
 
-    /** Копирует текст в буфер обмена (с fallback для file://) */
     async function copyText(text) {
         try {
             if (navigator.clipboard && window.isSecureContext) {
@@ -411,8 +528,6 @@
                 return true;
             }
         } catch (e) { /* fallthrough */ }
-
-        // Fallback — execCommand
         const ta = document.createElement('textarea');
         ta.value = text;
         ta.setAttribute('readonly', '');
@@ -428,7 +543,6 @@
         return ok;
     }
 
-    /** Извлекает точки из слоя (placemarks уже в правильном порядке) */
     function layerToPoints(layer) {
         return layer.placemarks.map(pm => {
             const c = pm.geometry.getCoordinates();
@@ -436,7 +550,6 @@
         });
     }
 
-    /** Копирует ссылку для ТЕКУЩЕГО маршрута */
     async function copyRouteYandexLink() {
         if (routePoints.length === 0) {
             flashRouteStatus('❌ Нет точек для ссылки', true);
@@ -445,30 +558,126 @@
         const points = routePoints.map(p => ({ lat: p.lat, lon: p.lon }));
         const url = buildYandexMapsUrl(points, 15);
         const ok = await copyText(url);
-        if (ok) {
-            flashRouteStatus('✅ Ссылка скопирована в буфер');
-        } else {
-            flashRouteStatus('❌ Не удалось скопировать', true);
-            // Покажем ссылку на всякий случай
-            console.log('Yandex URL:', url);
-        }
+        if (ok) flashRouteStatus('✅ Ссылка скопирована в буфер');
+        else { flashRouteStatus('❌ Не удалось скопировать', true); console.log('Yandex URL:', url); }
     }
 
-    /** Копирует ссылку для КОНКРЕТНОГО СЛОЯ */
     async function copyLayerYandexLink(layer) {
         const points = layerToPoints(layer);
-        if (points.length === 0) {
-            setStatus('❌ В слое нет точек', true);
-            return;
-        }
+        if (points.length === 0) { setStatus('❌ В слое нет точек', true); return; }
         const url = buildYandexMapsUrl(points, 15);
         const ok = await copyText(url);
-        if (ok) {
-            setStatus(`✅ Ссылка для «${layer.name}» скопирована`);
-        } else {
-            setStatus('❌ Не удалось скопировать', true);
-            console.log('Yandex URL:', url);
+        if (ok) setStatus(`✅ Ссылка для «${layer.name}» скопирована`);
+        else { setStatus('❌ Не удалось скопировать', true); console.log('Yandex URL:', url); }
+    }
+
+    /* =========================================================
+       ПАРСЕР ССЫЛКИ ЯНДЕКС.КАРТ
+       ========================================================= */
+    function parseYandexLink(rawInput) {
+        if (!rawInput || !rawInput.trim()) {
+            return { points: [], error: 'Вставьте ссылку' };
         }
+
+        let text = rawInput.trim();
+        let m = text.match(/[?&#]rtext=([^&\s]+)/i);
+        if (!m) {
+            if (text.includes('~') || /^-?\d+\.\d+\s*,\s*-?\d+\.\d+/.test(text)) {
+                m = [null, text];
+            } else {
+                return { points: [], error: 'Параметр rtext не найден в ссылке' };
+            }
+        }
+
+        let payload = m[1];
+        try { payload = decodeURIComponent(payload.replace(/\+/g, '%20')); }
+        catch (_) { /* ignore */ }
+
+        const parts = payload.split('~');
+        const points = [];
+        for (const part of parts) {
+            const seg = part.trim();
+            if (!seg) continue;
+            const [a, b] = seg.split(',').map(s => parseFloat(s.trim()));
+            if (isNaN(a) || isNaN(b)) continue;
+            if (a < -90 || a > 90 || b < -180 || b > 180) continue;
+            points.push({ lat: a, lon: b });
+        }
+
+        if (points.length === 0) {
+            return { points: [], error: 'Не удалось извлечь ни одной точки' };
+        }
+        return { points, error: null };
+    }
+
+    function openLinkModal() {
+        const modal = document.getElementById('linkModal');
+        const input = document.getElementById('linkInput');
+        const status = document.getElementById('modalStatus');
+        const addBtn = document.getElementById('modalAdd');
+        const repBtn = document.getElementById('modalReplace');
+
+        input.value = '';
+        status.textContent = '';
+        status.classList.remove('err');
+        addBtn.disabled = true;
+        repBtn.disabled = true;
+
+        modal.style.display = 'flex';
+        setTimeout(() => input.focus(), 60);
+
+        const update = () => {
+            const { points, error } = parseYandexLink(input.value);
+            if (error) {
+                status.textContent = input.value.trim() ? '⚠️ ' + error : '';
+                status.classList.toggle('err', input.value.trim().length > 0);
+                addBtn.disabled = true;
+                repBtn.disabled = true;
+            } else {
+                status.textContent = `✅ Найдено ${points.length} точек — готово к загрузке`;
+                status.classList.remove('err');
+                addBtn.disabled = false;
+                repBtn.disabled = false;
+            }
+        };
+        input.oninput = update;
+        input.onpaste = () => setTimeout(update, 0);
+
+        const onKey = (e) => {
+            if (e.key === 'Escape') closeLinkModal();
+        };
+        document.addEventListener('keydown', onKey);
+        modal._onKey = onKey;
+    }
+
+    function closeLinkModal() {
+        const modal = document.getElementById('linkModal');
+        if (modal._onKey) document.removeEventListener('keydown', modal._onKey);
+        modal.style.display = 'none';
+    }
+
+    function applyLink(mode) {
+        const input = document.getElementById('linkInput');
+        const { points, error } = parseYandexLink(input.value);
+        if (error) return;
+
+        if (mode === 'replace') {
+            clearRoute(true);
+        }
+        points.forEach(p => addRoutePoint(p.lat, p.lon, true));
+        updateRoute();
+        renderRouteList();
+
+        if (routePoints.length > 0) {
+            const coords = routePoints.map(p => [p.lat, p.lon]);
+            try {
+                const bounds = ymaps.util.bounds.fromPoints(coords);
+                myMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
+            } catch (_) { /* ignore */ }
+        }
+
+        closeLinkModal();
+        flashRouteStatus(`✅ Загружено ${points.length} точек из ссылки`);
     }
 
     /* =========================================================
@@ -510,7 +719,7 @@
         return pm;
     }
 
-    function addRoutePoint(lat, lon) {
+    function addRoutePoint(lat, lon, silent = false) {
         if (!routePolyline) {
             routePolyline = new ymaps.Polyline(
                 [[lat, lon]], {},
@@ -526,7 +735,7 @@
 
         updateRoute();
         renderRouteList();
-        flashRouteStatus('✅ Добавлена точка ' + index);
+        if (!silent) flashRouteStatus('✅ Добавлена точка ' + index);
     }
 
     function removeRoutePoint(index) {
@@ -534,14 +743,23 @@
         if (!rec) return;
         myMap.geoObjects.remove(rec.placemark);
         routePoints.splice(index, 1);
-
         routePoints.forEach((p, i) => p.placemark.properties.set('label', String(i + 1)));
-
         updateRoute();
         renderRouteList();
     }
 
-    function clearRoute() {
+    function moveRoutePoint(fromIdx, toIdx) {
+        if (fromIdx === toIdx) return;
+        if (fromIdx < 0 || fromIdx >= routePoints.length) return;
+        if (toIdx < 0 || toIdx >= routePoints.length) return;
+        const [moved] = routePoints.splice(fromIdx, 1);
+        routePoints.splice(toIdx, 0, moved);
+        routePoints.forEach((p, i) => p.placemark.properties.set('label', String(i + 1)));
+        updateRoute();
+        renderRouteList();
+    }
+
+    function clearRoute(silent = false) {
         routePoints.forEach(p => myMap.geoObjects.remove(p.placemark));
         routePoints = [];
         if (routePolyline) {
@@ -550,18 +768,14 @@
         }
         updateRoute();
         renderRouteList();
-        flashRouteStatus('🗑 Маршрут очищен');
+        if (!silent) flashRouteStatus('🗑 Маршрут очищен');
     }
 
     function updateRoute() {
         const coords = routePoints.map(p => [p.lat, p.lon]);
-
-        if (routePolyline) {
-            if (coords.length >= 1) {
-                routePolyline.geometry.setCoordinates(coords);
-            }
+        if (routePolyline && coords.length >= 1) {
+            routePolyline.geometry.setCoordinates(coords);
         }
-
         const total = routeTotalDistance();
         const cntEl = document.getElementById('routePointCount');
         const distEl = document.getElementById('routeDistance');
@@ -582,21 +796,61 @@
         routePoints.forEach((p, i) => {
             const row = document.createElement('div');
             row.className = 'point-row';
+            row.draggable = true;
+            row.dataset.idx = i;
             row.innerHTML =
+                '<div class="point-handle" title="Перетащите, чтобы изменить порядок">☰</div>' +
                 '<div class="point-index">' + (i + 1) + '</div>' +
                 '<div class="point-coords">' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + '</div>' +
-                '<button class="point-del" title="Удалить точку">✕</button>';
+                '<div class="point-actions">' +
+                    '<button class="point-up" title="Вверх" ' + (i === 0 ? 'disabled' : '') + '>▲</button>' +
+                    '<button class="point-down" title="Вниз" ' + (i === routePoints.length - 1 ? 'disabled' : '') + '>▼</button>' +
+                    '<button class="point-del" title="Удалить точку">✕</button>' +
+                '</div>';
 
             row.addEventListener('click', (e) => {
-                if (e.target.classList.contains('point-del')) return;
+                if (e.target.closest('button')) return;
                 myMap.setCenter([p.lat, p.lon], Math.max(myMap.getZoom(), 15), { duration: 300 });
                 p.placemark.options.set('iconImageSize', [34, 34]);
                 setTimeout(() => p.placemark.options.set('iconImageSize', [30, 30]), 400);
             });
 
+            row.querySelector('.point-up').addEventListener('click', (e) => {
+                e.stopPropagation();
+                moveRoutePoint(i, i - 1);
+            });
+            row.querySelector('.point-down').addEventListener('click', (e) => {
+                e.stopPropagation();
+                moveRoutePoint(i, i + 1);
+            });
             row.querySelector('.point-del').addEventListener('click', (e) => {
                 e.stopPropagation();
                 removeRoutePoint(i);
+            });
+
+            row.addEventListener('dragstart', (e) => {
+                draggedIdx = i;
+                row.classList.add('dragging');
+                try { e.dataTransfer.effectAllowed = 'move'; } catch (_) {}
+                try { e.dataTransfer.setData('text/plain', String(i)); } catch (_) {}
+            });
+            row.addEventListener('dragend', () => {
+                row.classList.remove('dragging');
+                document.querySelectorAll('.point-row').forEach(r => r.classList.remove('drag-over'));
+                draggedIdx = null;
+            });
+            row.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                try { e.dataTransfer.dropEffect = 'move'; } catch (_) {}
+                if (draggedIdx !== null && draggedIdx !== i) row.classList.add('drag-over');
+            });
+            row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+            row.addEventListener('drop', (e) => {
+                e.preventDefault();
+                row.classList.remove('drag-over');
+                if (draggedIdx === null || draggedIdx === i) return;
+                moveRoutePoint(draggedIdx, i);
+                draggedIdx = null;
             });
 
             box.appendChild(row);
@@ -604,7 +858,7 @@
     }
 
     /* =========================================================
-       ЭКСПОРТ В GEOJSON (без изменений)
+       ЭКСПОРТ В GEOJSON
        ========================================================= */
     function exportRoute() {
         if (routePoints.length === 0) {
@@ -648,7 +902,7 @@
             });
         }
 
-        const featureCollection = {
+        const fc = {
             type: 'FeatureCollection',
             name: baseName,
             properties: {
@@ -660,7 +914,7 @@
             features: features
         };
 
-        const json = JSON.stringify(featureCollection, null, 2);
+        const json = JSON.stringify(fc, null, 2);
         const blob = new Blob([json], { type: 'application/geo+json' });
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -686,6 +940,13 @@
         el._t = setTimeout(() => { el.innerHTML = ''; }, 3500);
     }
 
+    function applyAddModeCursor() {
+        const mapEl = document.getElementById('map');
+        if (!mapEl) return;
+        if (addMode) mapEl.classList.add('map-crosshair');
+        else mapEl.classList.remove('map-crosshair');
+    }
+
     function setupRoutePanel() {
         const nameInput = document.getElementById('routeName');
         const preview = document.getElementById('namePreview');
@@ -701,8 +962,9 @@
             addMode = !addMode;
             addBtn.textContent = addMode ? '➕ Добавление: ВКЛ' : '⏸ Добавление: ВЫКЛ';
             addBtn.classList.toggle('off', !addMode);
+            applyAddModeCursor();
         });
-        myMap.cursors.push('crosshair');
+        applyAddModeCursor();
 
         document.getElementById('clearRouteBtn').addEventListener('click', () => {
             if (routePoints.length === 0) return;
@@ -710,14 +972,21 @@
         });
 
         document.getElementById('exportBtn').addEventListener('click', exportRoute);
-
-        // NEW: кнопка "Ссылка для Яндекс.Карт"
         document.getElementById('routeYandexBtn').addEventListener('click', copyRouteYandexLink);
+        document.getElementById('fromLinkBtn').addEventListener('click', openLinkModal);
 
         myMap.events.add('click', (e) => {
             if (!addMode) return;
             const coords = e.get('coords');
             addRoutePoint(coords[0], coords[1]);
+        });
+
+        document.getElementById('modalClose').addEventListener('click', closeLinkModal);
+        document.getElementById('modalCancel').addEventListener('click', closeLinkModal);
+        document.getElementById('modalAdd').addEventListener('click', () => applyLink('add'));
+        document.getElementById('modalReplace').addEventListener('click', () => applyLink('replace'));
+        document.getElementById('linkModal').addEventListener('click', (e) => {
+            if (e.target.id === 'linkModal') closeLinkModal();
         });
     }
 
@@ -738,11 +1007,8 @@
        ========================================================= */
     function getCoordinates(coords, swapXY) {
         if (!coords || coords.length < 2) return null;
-        if (swapXY) {
-            return { lat: coords[0], lon: coords[1] };
-        } else {
-            return { lat: coords[1], lon: coords[0] };
-        }
+        if (swapXY) return { lat: coords[0], lon: coords[1] };
+        return { lat: coords[1], lon: coords[0] };
     }
 
     function getPointId(feature, idx) {
@@ -796,7 +1062,6 @@
         points.forEach(point => {
             let display = String(point.id);
             if (display.length > 8) display = display.substring(0, 7) + '…';
-
             const placemark = new ymaps.Placemark(
                 [point.lat, point.lon],
                 {},
@@ -816,20 +1081,14 @@
         let polyline = null;
         if (coordinatesLine.length > 1) {
             polyline = new ymaps.Polyline(coordinatesLine, {}, {
-                strokeColor: color,
-                strokeWidth: 2.5,
-                strokeOpacity: 0.7
+                strokeColor: color, strokeWidth: 2.5, strokeOpacity: 0.7
             });
         }
 
         return {
             id: fileName + '_' + Date.now() + '_' + Math.random(),
-            name: fileName,
-            color: color,
-            visible: true,
-            swapXY: swapXY,
-            placemarks: placemarks,
-            polyline: polyline,
+            name: fileName, color, visible: true, swapXY,
+            placemarks, polyline,
             pointCount: points.length,
             map: mapInstance,
             rawData: geojson
@@ -923,7 +1182,6 @@
             div.querySelector('input').addEventListener('change', (e) => setLayerVisibility(layer, e.target.checked));
             div.querySelector('.swap-btn').addEventListener('click', () => toggleSwapXY(layer));
             div.querySelector('.remove-layer').addEventListener('click', () => removeLayer(layer));
-            // NEW: Yandex-кнопка для слоя
             div.querySelector('.yandex-layer-btn').addEventListener('click', () => copyLayerYandexLink(layer));
             container.appendChild(div);
         });
@@ -946,9 +1204,7 @@
     function scanDirectoryListing() {
         return new Promise((resolve, reject) => {
             $.ajax({
-                url: './',
-                type: 'GET',
-                timeout: 5000,
+                url: './', type: 'GET', timeout: 5000,
                 success: function (data) {
                     const jsonFiles = [];
                     const regex = /href="([^"]*\.(?:geojson|json))"/gi;
@@ -968,39 +1224,32 @@
 
     function tryKnownFiles() {
         const known = [
-            'numbered_points.geojson',
-            'data.json',
-            'points.geojson',
-            'map.geojson',
-            'numbered_points.json',
+            'numbered_points.geojson', 'data.json', 'points.geojson',
+            'map.geojson', 'numbered_points.json',
             'ml_planner_tl_barrier_country.geojson',
             'ml_planner_tl_barrier_country_2.geojson',
             'ml_planner_tl_cross.geojson'
         ];
         let loaded = 0;
         known.forEach(filename => {
-            $.ajax({
-                url: filename,
-                dataType: 'json',
-                timeout: 3000
-            }).done(geojson => {
-                if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
-                    let name = filename.replace(/\.(geojson|json)$/i, '');
-                    const color = getNextColor();
-                    const isFirst = layers.length === 0;
-                    if (addLayer(geojson, name, color, myMap, isFirst, false)) {
-                        loaded++;
-                        console.log(`Авто-загружен: ${filename}`);
+            $.ajax({ url: filename, dataType: 'json', timeout: 3000 })
+                .done(geojson => {
+                    if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
+                        let name = filename.replace(/\.(geojson|json)$/i, '');
+                        const color = getNextColor();
+                        const isFirst = layers.length === 0;
+                        if (addLayer(geojson, name, color, myMap, isFirst, false)) {
+                            loaded++;
+                            console.log(`Авто-загружен: ${filename}`);
+                        }
                     }
-                }
-            }).fail(() => {});
+                }).fail(() => {});
         });
         return loaded;
     }
 
     async function fullScan(showStatus = true) {
         if (showStatus) setStatus('🔍 Сканирование папки...');
-
         const filesFromDir = await scanDirectoryListing().catch(() => []);
 
         if (filesFromDir.length > 0) {
@@ -1014,20 +1263,15 @@
                     if (name.length > 25) name = name.slice(0, 22) + '…';
                     const color = getNextColor();
                     const isFirst = layers.length === 0;
-                    if (addLayer(geojson, name, color, myMap, isFirst, false)) {
-                        loadedCount++;
-                    }
+                    if (addLayer(geojson, name, color, myMap, isFirst, false)) loadedCount++;
                 }
             }
             if (showStatus) setStatus(`✅ Загружено ${loadedCount} файлов`);
         } else {
             if (showStatus) setStatus('⚠️ Сканирование папки недоступно, ищу известные файлы...');
             const loaded = tryKnownFiles();
-            if (loaded === 0 && showStatus) {
-                setStatus('❌ Файлы не найдены. Используйте кнопку "Загрузить файл"', true);
-            } else if (showStatus) {
-                setStatus(`✅ Загружено ${loaded} файлов`);
-            }
+            if (loaded === 0 && showStatus) setStatus('❌ Файлы не найдены. Используйте кнопку "Загрузить файл"', true);
+            else if (showStatus) setStatus(`✅ Загружено ${loaded} файлов`);
         }
     }
 
@@ -1036,10 +1280,7 @@
         const btn = document.getElementById('geolocationBtn');
         if (!btn) return;
         btn.addEventListener('click', () => {
-            if (!navigator.geolocation) {
-                setStatus('❌ Браузер не поддерживает геолокацию', true);
-                return;
-            }
+            if (!navigator.geolocation) { setStatus('❌ Браузер не поддерживает геолокацию', true); return; }
             setStatus('📍 Определение местоположения...');
             navigator.geolocation.getCurrentPosition(
                 (position) => {
