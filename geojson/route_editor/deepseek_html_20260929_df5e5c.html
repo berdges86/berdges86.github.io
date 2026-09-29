@@ -1,0 +1,2522 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GeoJSON Viewer — маршрут + Яндекс.Карты</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        html, body, #map { width: 100%; height: 100%; }
+
+        #map { cursor: default; }
+        #map.map-crosshair { cursor: crosshair !important; }
+
+        /* ==================== ПЛАВАЮЩИЕ ОКНА ==================== */
+        .floating-window {
+            position: fixed;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.28);
+            z-index: 500;
+            font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+            font-size: 13px;
+            display: flex;
+            flex-direction: column;
+            transition: box-shadow .18s;
+        }
+        .floating-window.focused {
+            box-shadow: 0 8px 32px rgba(0,0,0,0.42);
+            z-index: 600;
+        }
+        .floating-window.hidden { display: none; }
+        .floating-window.minimized .panel-content { display: none; }
+
+        .route-window { top: 10px; left: 10px; width: 400px; }
+        .layers-window { top: 10px; right: 10px; width: 300px; }
+
+        .panel-header {
+            padding: 10px 12px;
+            background: #2c3e50;
+            color: white;
+            border-radius: 8px 8px 0 0;
+            cursor: move;
+            font-weight: bold;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            user-select: none;
+            gap: 8px;
+        }
+        .route-window .panel-header { background: #8e44ad; }
+        .route-window.insert-mode .panel-header { background: #e67e22; }
+        .panel-header h3 {
+            font-size: 13.5px; font-weight: bold;
+            flex: 1; white-space: nowrap;
+            overflow: hidden; text-overflow: ellipsis;
+        }
+        .window-controls { display: flex; gap: 4px; flex: 0 0 auto; }
+        .win-btn {
+            width: 22px; height: 22px;
+            border: none; border-radius: 4px;
+            background: rgba(255,255,255,.16);
+            color: white; cursor: pointer;
+            font-size: 12px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s;
+            font-family: inherit;
+        }
+        .win-btn:hover { background: rgba(255,255,255,.34); }
+        .win-btn.close:hover { background: #e74c3c; }
+
+        .panel-content {
+            padding: 10px;
+            display: flex; flex-direction: column; gap: 8px;
+            overflow: visible;
+        }
+
+        /* ==================== КНОПКИ ВОЗВРАТА ==================== */
+        .restore-btn {
+            position: fixed;
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            background: white;
+            border: none;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            cursor: pointer;
+            z-index: 500;
+            font-size: 22px;
+            display: none;
+            align-items: center; justify-content: center;
+            transition: transform .15s, background .15s;
+        }
+        .restore-btn:hover { transform: scale(1.08); background: #f4f6f7; }
+        .restore-btn:active { transform: scale(0.95); }
+        .restore-btn.visible { display: flex; }
+        .restore-route  { bottom: 20px; left: 20px; }
+        .restore-layers { bottom: 20px; right: 80px; }
+
+        /* ==================== ОБЩИЕ КНОПКИ ==================== */
+        .upload-btn, .scan-btn, .add-mode-btn, .clear-btn, .big-io-btn {
+            width: 100%; padding: 9px 10px;
+            border: none; border-radius: 5px;
+            cursor: pointer; font-weight: 600; font-size: 12.5px;
+            transition: background .15s, transform .1s, filter .15s;
+            font-family: inherit;
+            color: white;
+            text-align: center;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .upload-btn { background: #3498db; }
+        .upload-btn:hover { background: #2980b9; }
+        .scan-btn { background: #27ae60; }
+        .scan-btn:hover { background: #229954; }
+
+        /* ---------- Компактные кнопки маршрута ---------- */
+        .route-buttons {
+            display: flex; gap: 6px;
+            align-items: stretch;
+        }
+        .route-buttons .add-mode-btn,
+        .route-buttons .clear-btn {
+            flex: 1 1 0;
+            min-width: 0;
+            padding: 8px 8px;
+            font-size: 12px;
+            border-radius: 5px;
+        }
+        .add-mode-btn { background: #27ae60; }
+        .add-mode-btn.off { background: #95a5a6; }
+        .add-mode-btn:hover { filter: brightness(1.08); }
+        .clear-btn { background: #e74c3c; }
+        .clear-btn:hover { background: #c0392b; }
+
+        /* ---------- Большие кнопки Экспорт/Импорт с dropdown ---------- */
+        .io-row { display: flex; gap: 8px; position: relative; z-index: 10; }
+        .dropdown-wrap { flex: 1 1 0; min-width: 0; position: relative; }
+        .big-io-btn {
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+            font-size: 13px; padding: 11px 10px;
+        }
+        .big-io-btn.export-btn-main { background: #2980b9; }
+        .big-io-btn.export-btn-main:hover { background: #21618c; }
+        .big-io-btn.import-btn-main { background: #16a085; }
+        .big-io-btn.import-btn-main:hover { background: #117a65; }
+        .big-io-btn .caret {
+            font-size: 9px; opacity: .85; transition: transform .18s;
+        }
+        .dropdown-wrap.open .big-io-btn .caret { transform: rotate(180deg); }
+
+        .dropdown-menu {
+            position: absolute; top: calc(100% + 5px); left: 0; right: 0;
+            background: #fff; border-radius: 8px;
+            box-shadow: 0 8px 26px rgba(0,0,0,.24);
+            border: 1px solid #e6eaed;
+            padding: 5px;
+            display: none;
+            flex-direction: column; gap: 2px;
+            z-index: 900;
+            min-width: 200px;
+            max-height: 340px; overflow-y: auto;
+            animation: ddIn .14s ease;
+        }
+        .dropdown-menu.drop-up {
+            top: auto;
+            bottom: calc(100% + 5px);
+            animation: ddInUp .14s ease;
+        }
+        @keyframes ddIn {
+            from { opacity: 0; transform: translateY(-6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes ddInUp {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .dropdown-wrap.open .dropdown-menu { display: flex; }
+
+        .dropdown-item {
+            display: flex; align-items: center; gap: 8px;
+            padding: 8px 10px;
+            border: none; background: transparent;
+            border-radius: 6px;
+            font-size: 12.5px; font-weight: 600;
+            color: #2c3e50;
+            cursor: pointer; text-align: left;
+            transition: background .12s;
+            font-family: inherit;
+            width: 100%;
+        }
+        .dropdown-item:hover { background: #f1f4f6; }
+        .dropdown-item .di-icon { flex: 0 0 auto; font-size: 14px; width: 18px; text-align: center; }
+        .dropdown-item .di-label { flex: 1; }
+        .dropdown-item .di-tag {
+            font-size: 9.5px; font-weight: 700;
+            padding: 2px 6px; border-radius: 3px;
+            text-transform: uppercase; letter-spacing: .4px;
+            color: #fff;
+        }
+
+        .dropdown-item.primary-geojson {
+            background: rgba(41, 128, 185, .10);
+            color: #21618c;
+        }
+        .dropdown-item.primary-geojson:hover { background: rgba(41, 128, 185, .20); }
+        .dropdown-item.primary-geojson .di-tag { background: #2980b9; }
+
+        .dropdown-item.primary-yandex {
+            background: rgba(252, 63, 29, .10);
+            color: #c0392b;
+        }
+        .dropdown-item.primary-yandex:hover { background: rgba(252, 63, 29, .22); }
+        .dropdown-item.primary-yandex .di-tag { background: #fc3f1d; }
+
+        .dropdown-item.secondary { color: #4b5b64; }
+        .dropdown-item.secondary .di-tag { background: #95a5a6; }
+
+        .dropdown-sep {
+            height: 1px; background: #e6eaed; margin: 4px 2px;
+        }
+
+        /* ---------- Поля маршрута ---------- */
+        .field-label {
+            font-size: 10px; color: #7f8c8d; text-transform: uppercase;
+            letter-spacing: .5px; font-weight: 600;
+        }
+        .text-input {
+            width: 100%; padding: 8px 10px; border: 1px solid #dfe4e6;
+            border-radius: 5px; font-size: 13px; font-family: inherit; color: #2c3e50;
+        }
+        .text-input:focus { outline: none; border-color: #8e44ad; }
+        .name-preview {
+            font-size: 11px; color: #e67e22; font-family: monospace;
+            word-break: break-all; margin-top: -4px; min-height: 14px;
+        }
+
+        .route-stats {
+            display: flex; justify-content: space-between;
+            background: #f4f6f7; border-radius: 5px; padding: 8px 10px;
+            font-size: 12px; color: #2c3e50;
+        }
+        .route-stats b { color: #8e44ad; }
+
+        /* ---------- Список точек ---------- */
+        .route-points {
+            max-height: 260px; overflow-y: auto;
+            border-radius: 5px; padding-right: 2px;
+            scrollbar-width: thin;
+            background: #fbfcfd;
+            border: 1px solid #eef2f5;
+        }
+        .point-row {
+            display: flex; align-items: center; gap: 6px;
+            padding: 6px 8px; background: #f8f9fa; border-radius: 5px;
+            margin: 3px;
+            cursor: pointer;
+            border-left: 3px solid #e74c3c;
+            transition: background .15s, opacity .15s;
+            user-select: none;
+        }
+        .point-row:hover { background: #eef2f5; }
+        .point-row.dragging { opacity: 0.4; }
+        .point-row.drag-over {
+            background: #fdebd0 !important;
+            border-left-color: #e67e22;
+        }
+        .point-handle {
+            cursor: grab; color: #95a5a6; font-size: 14px;
+            line-height: 1; padding: 0 2px; user-select: none;
+        }
+        .point-handle:active { cursor: grabbing; }
+        .point-index {
+            flex: 0 0 auto; width: 22px; height: 22px; border-radius: 50%;
+            background: #e74c3c; color: white; display: flex;
+            align-items: center; justify-content: center;
+            font-size: 11px; font-weight: bold;
+        }
+        .point-coords {
+            flex: 1; font-family: monospace; font-size: 11px; color: #34495e;
+            white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+            min-width: 0;
+        }
+        .point-actions { display: flex; gap: 3px; flex: 0 0 auto; }
+        .point-actions button {
+            background: #ecf0f1; border: 1px solid #dfe4e6; border-radius: 3px;
+            padding: 1px 5px; font-size: 10px; cursor: pointer; color: #2c3e50;
+            line-height: 1.2;
+        }
+        .point-actions button:hover { background: #dfe4e6; }
+        .point-actions button:disabled { opacity: .4; cursor: default; }
+        .point-actions .point-del {
+            background: #e74c3c; border-color: #e74c3c; color: white;
+        }
+        .point-actions .point-del:hover { background: #c0392b; border-color: #c0392b; }
+
+        /* ---------- Вставка между точками ---------- */
+        .insert-slot {
+            height: 10px; margin: 0 3px;
+            display: flex; align-items: center; justify-content: center;
+            position: relative;
+            cursor: pointer;
+            transition: background .15s;
+            border-radius: 3px;
+        }
+        .insert-slot::before {
+            content: '';
+            position: absolute; left: 8px; right: 8px; top: 50%;
+            height: 1px; background: transparent;
+            transition: background .15s;
+        }
+        .insert-slot:hover { background: rgba(230, 126, 34, .08); }
+        .insert-slot:hover::before { background: #e67e22; }
+        .insert-slot .insert-btn {
+            opacity: 0;
+            width: 18px; height: 18px;
+            border-radius: 50%;
+            background: #e67e22; color: white;
+            border: 2px solid #fff;
+            box-shadow: 0 1px 4px rgba(0,0,0,.25);
+            font-size: 11px; font-weight: bold; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+            transition: opacity .15s, transform .15s;
+            position: relative; z-index: 2;
+            padding: 0;
+        }
+        .insert-slot:hover .insert-btn { opacity: 1; }
+        .insert-slot .insert-btn:hover { transform: scale(1.15); }
+        .insert-slot.active { background: rgba(230, 126, 34, .18); }
+        .insert-slot.active::before { background: #e67e22; }
+        .insert-slot.active .insert-btn {
+            opacity: 1;
+            background: #c0392b;
+            animation: pulse 1.2s ease-in-out infinite;
+        }
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.18); }
+        }
+        .insert-slot.at-start .insert-btn,
+        .insert-slot.at-end .insert-btn { opacity: 0.55; }
+        .insert-slot.at-start:hover .insert-btn,
+        .insert-slot.at-end:hover .insert-btn { opacity: 1; }
+        .insert-slot .insert-label {
+            position: absolute; left: 24px; top: 50%; transform: translateY(-50%);
+            font-size: 9.5px; color: #e67e22; font-weight: 700;
+            opacity: 0; transition: opacity .15s; pointer-events: none;
+            white-space: nowrap; background: #fff; padding: 1px 5px; border-radius: 3px;
+            box-shadow: 0 1px 3px rgba(0,0,0,.12);
+        }
+        .insert-slot.active .insert-label { opacity: 1; }
+        .insert-slot:hover .insert-label { opacity: 1; }
+
+        .route-empty {
+            text-align: center; color: #999; font-size: 11px; padding: 14px;
+        }
+
+        .insert-hint {
+            font-size: 11px; color: #fff;
+            background: #e67e22;
+            padding: 6px 9px; border-radius: 5px;
+            line-height: 1.4;
+            display: none;
+            align-items: center; gap: 6px;
+        }
+        .insert-hint.visible { display: flex; }
+        .insert-hint b { font-weight: 800; }
+        .insert-hint .cancel-insert {
+            margin-left: auto;
+            background: rgba(255,255,255,.25);
+            border: none; color: white;
+            padding: 2px 8px; border-radius: 3px;
+            font-size: 10.5px; font-weight: 700; cursor: pointer;
+            font-family: inherit;
+        }
+        .insert-hint .cancel-insert:hover { background: rgba(255,255,255,.4); }
+
+        /* ---------- Короткая инструкция + кнопка «Подробнее» ---------- */
+        .help-text {
+            font-size: 11px; color: #2c3e50; padding: 8px;
+            background: #ecf0f1; border-radius: 5px; line-height: 1.5;
+        }
+        .details-btn {
+            width: 100%;
+            padding: 7px 10px;
+            background: #ecf0f1;
+            color: #2c3e50;
+            border: 1px solid #dfe4e6;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 12px;
+            font-family: inherit;
+            transition: background .15s;
+            text-align: center;
+        }
+        .details-btn:hover { background: #dfe4e6; }
+        .details-btn:active { transform: scale(0.99); }
+
+        .status { font-size: 11px; color: #666; padding: 5px; text-align: center; min-height: 18px; }
+
+        /* ---------- Слои ---------- */
+        .layer-item {
+            padding: 8px 10px; margin-bottom: 8px;
+            background: #f8f9fa; border-radius: 5px; border-left: 3px solid;
+        }
+        .layer-header { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; }
+        .layer-header input { width: 18px; height: 18px; cursor: pointer; }
+        .layer-name { flex: 1; font-weight: 500; word-break: break-word; }
+        .layer-stats { font-size: 10px; color: #6c757d; margin-top: 5px; padding-left: 28px; }
+        .coord-switch { padding-left: 28px; margin-top: 6px; }
+        .coord-switch button {
+            background: #ecf0f1; border: 1px solid #bdc3c7; border-radius: 4px;
+            padding: 3px 8px; font-size: 11px; cursor: pointer;
+        }
+        .coord-switch button:hover { background: #d5dbdb; }
+        .coord-status { font-size: 10px; margin-left: 8px; color: #e67e22; }
+        .remove-layer {
+            background: #e74c3c; color: white; border: none; border-radius: 3px;
+            padding: 2px 8px; font-size: 11px; cursor: pointer;
+        }
+        .remove-layer:hover { background: #c0392b; }
+        .layer-actions {
+            padding-left: 28px; margin-top: 6px;
+            display: flex; gap: 6px; flex-wrap: wrap;
+        }
+        .layer-actions button {
+            background: #fc3f1d; color: white; border: none; border-radius: 4px;
+            padding: 4px 8px; font-size: 11px; cursor: pointer; font-weight: 600;
+        }
+        .layer-actions button:hover { background: #d63312; }
+
+        .no-files { text-align: center; color: #999; padding: 20px; font-size: 12px; }
+
+        /* ---------- Геолокация ---------- */
+        .geolocation-btn {
+            position: fixed; bottom: 20px; right: 20px;
+            background: white; border: none; border-radius: 50%;
+            width: 48px; height: 48px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.3);
+            cursor: pointer; z-index: 400; font-size: 28px;
+            display: flex; align-items: center; justify-content: center;
+            transition: transform 0.2s, background 0.2s;
+        }
+        .geolocation-btn:hover { transform: scale(1.05); background: #f0f0f0; }
+        .geolocation-btn:active { transform: scale(0.95); }
+
+        /* ---------- Модальные окна ---------- */
+        .modal-overlay {
+            position: fixed; inset: 0;
+            background: rgba(15, 23, 32, 0.55);
+            backdrop-filter: blur(3px);
+            z-index: 2000;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+            animation: fadeIn .18s ease;
+        }
+        @keyframes fadeIn { from { opacity: 0 } to { opacity: 1 } }
+        @keyframes popIn {
+            from { opacity: 0; transform: translateY(12px) scale(.97); }
+            to   { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .modal {
+            background: #fff; border-radius: 14px;
+            width: 100%; max-width: 520px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.35);
+            font-family: system-ui, -apple-system, 'Segoe UI', Arial, sans-serif;
+            overflow: hidden;
+            animation: popIn .22s ease;
+            display: flex; flex-direction: column;
+            max-height: 90vh;
+        }
+        .modal-header {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 16px 20px;
+            background: linear-gradient(135deg, #3498db, #2980b9);
+            color: white;
+            flex: 0 0 auto;
+        }
+        .modal-header h3 { font-size: 15px; font-weight: 700; }
+        .modal-close {
+            background: rgba(255,255,255,.15); border: none;
+            color: white; width: 28px; height: 28px; border-radius: 50%;
+            cursor: pointer; font-size: 14px; line-height: 1;
+            display: flex; align-items: center; justify-content: center;
+            transition: background .15s;
+        }
+        .modal-close:hover { background: rgba(255,255,255,.3); }
+        .modal-body { padding: 18px 20px 10px; overflow-y: auto; flex: 1 1 auto; }
+        .modal-hint {
+            font-size: 12.5px; color: #566573; margin-bottom: 10px;
+            line-height: 1.45;
+        }
+        .modal-hint code {
+            background: #eef2f5; padding: 1px 5px; border-radius: 3px;
+            font-size: 11.5px; color: #c0392b;
+        }
+        .modal-textarea {
+            width: 100%; min-height: 110px; resize: vertical;
+            padding: 11px 12px; border: 1.5px solid #dfe4e6; border-radius: 8px;
+            font-family: ui-monospace, 'Consolas', monospace; font-size: 11.5px;
+            color: #2c3e50; line-height: 1.45;
+            transition: border-color .15s, box-shadow .15s;
+        }
+        .modal-textarea:focus {
+            outline: none; border-color: #3498db;
+            box-shadow: 0 0 0 3px rgba(52,152,219,.15);
+        }
+        .modal-status {
+            font-size: 12px; min-height: 18px; margin-top: 8px;
+            color: #27ae60; font-weight: 500;
+        }
+        .modal-status.err { color: #c0392b; }
+        .modal-footer {
+            display: flex; gap: 8px; justify-content: flex-end;
+            padding: 12px 20px 18px; flex-wrap: wrap;
+            flex: 0 0 auto;
+        }
+        .modal-btn {
+            padding: 9px 16px; border: none; border-radius: 7px;
+            font-size: 13px; font-weight: 600; cursor: pointer;
+            transition: background .15s, transform .1s;
+            font-family: inherit;
+        }
+        .modal-btn:active { transform: scale(0.97); }
+        .modal-btn:disabled { opacity: .5; cursor: not-allowed; }
+        .modal-btn-cancel  { background: #ecf0f1; color: #2c3e50; }
+        .modal-btn-cancel:hover { background: #dfe4e6; }
+        .modal-btn-add     { background: #27ae60; color: white; }
+        .modal-btn-add:hover { background: #229954; }
+        .modal-btn-replace { background: #e67e22; color: white; }
+        .modal-btn-replace:hover { background: #d35400; }
+
+        .modal-tabs {
+            display: flex; gap: 4px; margin-bottom: 12px;
+            border-bottom: 1px solid #dfe4e6;
+        }
+        .modal-tab {
+            padding: 7px 12px; border: none; background: transparent;
+            font-size: 12.5px; font-weight: 600; color: #7f8c8d;
+            cursor: pointer; border-bottom: 2px solid transparent;
+            margin-bottom: -1px; font-family: inherit;
+        }
+        .modal-tab.active { color: #2980b9; border-bottom-color: #2980b9; }
+
+        /* ---------- Модал «Подробнее» ---------- */
+        .details-modal { max-width: 680px; }
+        .details-modal .modal-header { background: linear-gradient(135deg, #8e44ad, #71368a); }
+
+        .details-section {
+            margin-bottom: 18px;
+            padding-bottom: 14px;
+            border-bottom: 1px solid #eef2f5;
+        }
+        .details-section:last-child { border-bottom: none; margin-bottom: 0; }
+        .details-section h4 {
+            font-size: 13.5px; font-weight: 800;
+            color: #2c3e50;
+            margin-bottom: 8px;
+            display: flex; align-items: center; gap: 7px;
+        }
+        .details-section h4 .ds-icon { font-size: 16px; }
+        .details-section p {
+            font-size: 12.5px; color: #4b5b64;
+            line-height: 1.55;
+            margin-bottom: 7px;
+        }
+        .details-section ul {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 6px;
+        }
+        .details-section li {
+            font-size: 12.5px; color: #4b5b64;
+            line-height: 1.55;
+            padding: 3px 0 3px 22px;
+            position: relative;
+        }
+        .details-section li::before {
+            content: '•';
+            position: absolute; left: 8px; top: 3px;
+            color: #8e44ad; font-weight: 800;
+        }
+        .details-section kbd {
+            display: inline-block;
+            background: #f4f6f7;
+            border: 1px solid #dfe4e6;
+            border-bottom-width: 2px;
+            border-radius: 4px;
+            padding: 0 6px;
+            font-family: ui-monospace, 'Consolas', monospace;
+            font-size: 11px;
+            color: #c0392b;
+            line-height: 1.6;
+            margin: 0 1px;
+        }
+        .details-section .tag-primary {
+            display: inline-block;
+            background: #2980b9; color: #fff;
+            font-size: 10px; font-weight: 700;
+            padding: 1px 6px; border-radius: 3px;
+            margin-left: 4px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            vertical-align: middle;
+        }
+        .details-section .tag-yandex {
+            display: inline-block;
+            background: #fc3f1d; color: #fff;
+            font-size: 10px; font-weight: 700;
+            padding: 1px 6px; border-radius: 3px;
+            margin-left: 4px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            vertical-align: middle;
+        }
+        .details-section .tag-secondary {
+            display: inline-block;
+            background: #95a5a6; color: #fff;
+            font-size: 10px; font-weight: 700;
+            padding: 1px 6px; border-radius: 3px;
+            margin-left: 4px;
+            text-transform: uppercase;
+            letter-spacing: .4px;
+            vertical-align: middle;
+        }
+        .details-section code {
+            background: #eef2f5;
+            padding: 1px 5px; border-radius: 3px;
+            font-family: ui-monospace, 'Consolas', monospace;
+            font-size: 11.5px;
+            color: #c0392b;
+        }
+
+        body.dragging-window { user-select: none; cursor: move; }
+        body.dragging-window * { cursor: move !important; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+
+<!-- ==================== ПЛАВАЮЩЕЕ ОКНО: МАРШРУТ ==================== -->
+<div class="floating-window route-window" id="routeWindow">
+    <div class="panel-header" id="routeHeader">
+        <h3 id="routeTitle">🛣️ Маршрут</h3>
+        <div class="window-controls">
+            <button class="win-btn minimize" id="routeMinBtn" title="Свернуть">—</button>
+            <button class="win-btn close" id="routeCloseBtn" title="Закрыть">✕</button>
+        </div>
+    </div>
+    <div class="panel-content" id="routeContent">
+        <div>
+            <div class="field-label">Название маршрута</div>
+            <input type="text" id="routeName" class="text-input" placeholder="Например: Маршрут №1">
+            <div class="name-preview" id="namePreview">route</div>
+        </div>
+
+        <div class="route-buttons">
+            <button class="add-mode-btn" id="addModeBtn" type="button">➕ Добавление: ВКЛ</button>
+            <button class="clear-btn" id="clearRouteBtn" type="button">🗑 Очистить</button>
+        </div>
+
+        <div class="route-stats">
+            <span>📍 Точек: <b id="routePointCount">0</b></span>
+            <span>📏 Длина: <b id="routeDistance">0 м</b></span>
+        </div>
+
+        <div class="insert-hint" id="insertHint">
+            <span>📍 Вставка точки в позицию <b id="insertPosLabel">—</b></span>
+            <button class="cancel-insert" id="cancelInsertBtn" type="button">Отмена (Esc)</button>
+        </div>
+
+        <div class="route-points" id="routePointsList"></div>
+
+        <!-- ЭКСПОРТ / ИМПОРТ -->
+        <div class="io-row">
+            <div class="dropdown-wrap" id="exportWrap">
+                <button class="big-io-btn export-btn-main" id="exportMainBtn" type="button">
+                    <span>📤 Экспорт</span>
+                    <span class="caret">▼</span>
+                </button>
+                <div class="dropdown-menu" id="exportMenu">
+                    <button class="dropdown-item primary-geojson" data-action="export-geojson" type="button">
+                        <span class="di-icon">💾</span>
+                        <span class="di-label">GeoJSON</span>
+                        <span class="di-tag">основной</span>
+                    </button>
+                    <button class="dropdown-item primary-yandex" data-action="export-yandex" type="button">
+                        <span class="di-icon">🔗</span>
+                        <span class="di-label">Яндекс.Карты</span>
+                        <span class="di-tag">основной</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button class="dropdown-item secondary" data-action="export-gpx" type="button">
+                        <span class="di-icon">🥾</span>
+                        <span class="di-label">GPX</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="export-kml" type="button">
+                        <span class="di-icon">🌍</span>
+                        <span class="di-label">KML</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="export-csv" type="button">
+                        <span class="di-icon">📊</span>
+                        <span class="di-label">CSV</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="export-wkt" type="button">
+                        <span class="di-icon">📝</span>
+                        <span class="di-label">WKT</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="export-txt" type="button">
+                        <span class="di-icon">📋</span>
+                        <span class="di-label">Текст (lat,lon)</span>
+                    </button>
+                </div>
+            </div>
+            <div class="dropdown-wrap" id="importWrap">
+                <button class="big-io-btn import-btn-main" id="importMainBtn" type="button">
+                    <span>📥 Импорт</span>
+                    <span class="caret">▼</span>
+                </button>
+                <div class="dropdown-menu" id="importMenu">
+                    <button class="dropdown-item primary-geojson" data-action="import-geojson" type="button">
+                        <span class="di-icon">📂</span>
+                        <span class="di-label">GeoJSON</span>
+                        <span class="di-tag">основной</span>
+                    </button>
+                    <button class="dropdown-item primary-yandex" data-action="import-yandex" type="button">
+                        <span class="di-icon">📎</span>
+                        <span class="di-label">Яндекс.Карты</span>
+                        <span class="di-tag">основной</span>
+                    </button>
+                    <div class="dropdown-sep"></div>
+                    <button class="dropdown-item secondary" data-action="import-gpx" type="button">
+                        <span class="di-icon">🥾</span>
+                        <span class="di-label">GPX</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="import-kml" type="button">
+                        <span class="di-icon">🌍</span>
+                        <span class="di-label">KML</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="import-csv" type="button">
+                        <span class="di-icon">📊</span>
+                        <span class="di-label">CSV</span>
+                    </button>
+                    <button class="dropdown-item secondary" data-action="import-text" type="button">
+                        <span class="di-icon">📝</span>
+                        <span class="di-label">Вставить текст (lat,lon)</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="help-text">
+            🖱 Клик по карте — добавить точку<br>
+            ✋ Точки можно перетаскивать мышью<br>
+            ➕ Кнопка между строками — вставка в это место
+        </div>
+
+        <button class="details-btn" id="detailsBtnRoute" type="button">❓ Подробнее</button>
+
+        <div class="status" id="routeStatus"></div>
+    </div>
+</div>
+
+<!-- ==================== ПЛАВАЮЩЕЕ ОКНО: СЛОИ ==================== -->
+<div class="floating-window layers-window" id="layersWindow">
+    <div class="panel-header" id="layersHeader">
+        <h3>📁 Слои GeoJSON</h3>
+        <div class="window-controls">
+            <button class="win-btn minimize" id="layersMinBtn" title="Свернуть">—</button>
+            <button class="win-btn close" id="layersCloseBtn" title="Закрыть">✕</button>
+        </div>
+    </div>
+    <div class="panel-content" id="layersContent">
+        <button class="upload-btn" id="uploadBtn" type="button">📂 Загрузить файл</button>
+        <button class="scan-btn" id="scanBtn" type="button">🔍 Сканировать папку</button>
+        <div id="layersList"></div>
+        <div id="statusMsg" class="status"></div>
+        <div class="help-text">
+            🔍 «Сканировать» — ищет все .geojson/.json в папке<br>
+            🔄 «Инверсия XY» — если координаты перепутаны<br>
+            🔗 «Яндекс» — копирует ссылку и открывает вкладку
+        </div>
+        <button class="details-btn" id="detailsBtnLayers" type="button">❓ Подробнее</button>
+    </div>
+</div>
+
+<!-- Кнопки возврата скрытых окон -->
+<button class="restore-btn restore-route" id="restoreRoute" title="Показать окно «Маршрут»">🛣️</button>
+<button class="restore-btn restore-layers" id="restoreLayers" title="Показать окно «Слои»">📁</button>
+
+<!-- Скрытые input-ы для импорта -->
+<input type="file" id="fileInput" style="display:none" accept=".geojson,.json" multiple>
+<input type="file" id="impGeoJSONInput" style="display:none" accept=".geojson,.json">
+<input type="file" id="impGPXInput" style="display:none" accept=".gpx">
+<input type="file" id="impKMLInput" style="display:none" accept=".kml">
+<input type="file" id="impCSVInput" style="display:none" accept=".csv,.txt">
+
+<button class="geolocation-btn" id="geolocationBtn" title="Определить моё местоположение">🤖</button>
+
+<!-- ==================== МОДАЛ: ИМПОРТ ==================== -->
+<div class="modal-overlay" id="linkModal" style="display:none;">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 id="modalTitle">📎 Импорт точек</h3>
+            <button class="modal-close" id="modalClose" title="Закрыть">✕</button>
+        </div>
+        <div class="modal-body">
+            <div class="modal-tabs">
+                <button class="modal-tab active" data-mode="link" type="button">Ссылка Яндекс.Карт</button>
+                <button class="modal-tab" data-mode="text" type="button">Текст (lat,lon)</button>
+            </div>
+            <p class="modal-hint" id="modalHint">
+                Вставьте ссылку, содержащую параметр <code>rtext=</code>.
+            </p>
+            <textarea id="modalInput" class="modal-textarea"
+                placeholder="https://yandex.ru/maps/?ll=...&rtext=55.742621,37.578078~..."></textarea>
+            <div class="modal-status" id="modalStatus"></div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" id="modalCancel" type="button">Отмена</button>
+            <button class="modal-btn modal-btn-add" id="modalAdd" type="button" disabled>➕ Добавить к маршруту</button>
+            <button class="modal-btn modal-btn-replace" id="modalReplace" type="button" disabled>🔄 Заменить маршрут</button>
+        </div>
+    </div>
+</div>
+
+<!-- ==================== МОДАЛ: ПОДРОБНАЯ СПРАВКА ==================== -->
+<div class="modal-overlay" id="detailsModal" style="display:none;">
+    <div class="modal details-modal">
+        <div class="modal-header">
+            <h3>❓ Подробная инструкция</h3>
+            <button class="modal-close" id="detailsClose" title="Закрыть">✕</button>
+        </div>
+        <div class="modal-body">
+
+            <div class="details-section">
+                <h4><span class="ds-icon">🛣️</span> Маршрут — добавление точек</h4>
+                <ul>
+                    <li><b>Клик по карте</b> — добавляет точку в конец маршрута (если режим «Добавление» включён).</li>
+                    <li><b>Кнопка «➕ Добавление: ВКЛ/ВЫКЛ»</b> — включает/выключает реакцию карты на клики.</li>
+                    <li><b>Вставка в любое место</b> — между строками точек есть кнопка <b>➕</b>. Нажмите её — включится режим вставки. Следующие клики по карте будут вставлять точки именно в это место.</li>
+                    <li>В режиме вставки индекс сдвигается после каждой точки — можно добавить подряд несколько точек в одну позицию.</li>
+                    <li><b>Отмена режима вставки</b> — <kbd>Esc</kbd> или кнопка «Отмена» в оранжевой плашке.</li>
+                </ul>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">✋</span> Маршрут — редактирование</h4>
+                <ul>
+                    <li><b>Перетаскивание точки на карте</b> — схватите маркер и перенесите. Координаты обновятся.</li>
+                    <li><b>Перестановка в списке</b> — drag&drop строк за иконку <b>☰</b>, либо кнопки <b>▲▼</b>.</li>
+                    <li><b>Удаление точки</b> — крестик <b>✕</b> в строке.</li>
+                    <li><b>Центрирование карты</b> — клик по строке (не по кнопкам) — карта перелетит к точке.</li>
+                </ul>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">📤</span> Экспорт</h4>
+                <p>Кнопка <b>«📤 Экспорт»</b> открывает меню форматов. Экспортируются <b>только точки</b> (линия не сохраняется в файл, но остаётся на карте).</p>
+                <ul>
+                    <li><b>💾 GeoJSON</b> <span class="tag-primary">основной</span> — стандартный формат для ГИС. <code>FeatureCollection</code> из <code>Point</code>.</li>
+                    <li><b>🔗 Яндекс.Карты</b> <span class="tag-yandex">основной</span> — формирует ссылку <code>rtext=</code>, <b>копирует в буфер</b> и <b>открывает в новой вкладке</b>.</li>
+                    <li><b>🥾 GPX</b> <span class="tag-secondary">вспом.</span> — для GPS-навигаторов, Strava, трекеров. Точки как <code>&lt;trkpt&gt;</code>.</li>
+                    <li><b>🌍 KML</b> <span class="tag-secondary">вспом.</span> — для Google Earth / Google Maps. Каждая точка — <code>Placemark</code> с <code>Point</code>.</li>
+                    <li><b>📊 CSV</b> <span class="tag-secondary">вспом.</span> — таблица <code>index,lat,lon</code> для Excel.</li>
+                    <li><b>📝 WKT</b> <span class="tag-secondary">вспом.</span> — <code>POINT (lon lat)</code> построчно.</li>
+                    <li><b>📋 Текст (lat,lon)</b> <span class="tag-secondary">вспом.</span> — простая строка <code>lat,lon</code> построчно.</li>
+                </ul>
+                <p>Название файла — транслитерация названия маршрута (кириллица → латиница, пробелы → <code>_</code>).</p>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">📥</span> Импорт</h4>
+                <p>Кнопка <b>«📥 Импорт»</b> открывает меню форматов. Импортируются <b>только точки</b> — линии игнорируются.</p>
+                <ul>
+                    <li><b>📂 GeoJSON</b> <span class="tag-primary">основной</span> — берутся только <code>Point</code>. <code>LineString</code>/<code>Polygon</code> пропускаются.</li>
+                    <li><b>📎 Яндекс.Карты</b> <span class="tag-yandex">основной</span> — вставьте ссылку с <code>rtext=</code> (из буфера, из адресной строки).</li>
+                    <li><b>🥾 GPX</b> <span class="tag-secondary">вспом.</span> — точки <code>&lt;wpt&gt;</code> и <code>&lt;trkpt&gt;</code>. Линии трека не берутся.</li>
+                    <li><b>🌍 KML</b> <span class="tag-secondary">вспом.</span> — только <code>&lt;Point&gt;&lt;coordinates&gt;</code>. <code>&lt;LineString&gt;</code> пропускается.</li>
+                    <li><b>📊 CSV</b> <span class="tag-secondary">вспом.</span> — <code>lat,lon</code>, разделитель запятая или точка с запятой. Первая строка-заголовок пропускается автоматически.</li>
+                    <li><b>📝 Текст (lat,lon)</b> <span class="tag-secondary">вспом.</span> — вставьте координаты построчно в модальном окне.</li>
+                </ul>
+                <p>Импорт <b>добавляет</b> точки к текущему маршруту. Для замены — кнопка «Заменить маршрут» в модале, либо сначала «🗑 Очистить».</p>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">📁</span> Слои GeoJSON</h4>
+                <ul>
+                    <li><b>📂 Загрузить файл</b> — выберите один или несколько <code>.geojson</code>/<code>.json</code>.</li>
+                    <li><b>🔍 Сканировать папку</b> — автоматически ищет все <code>.geojson</code>/<code>.json</code> в директории с HTML-файлом. Если листинг недоступен — пробует известные имена файлов.</li>
+                    <li><b>Чекбокс</b> — включить/выключить видимость слоя на карте.</li>
+                    <li><b>🔄 Инверсия XY</b> — если точки отображаются «не там», возможно координаты в файле записаны как <code>[lat, lon]</code> вместо <code>[lon, lat]</code>. Кнопка меняет порядок.</li>
+                    <li><b>🔗 Яндекс.Карты</b> — формирует ссылку на маршрут слоя, копирует в буфер и открывает в новой вкладке.</li>
+                    <li><b>✕</b> — удалить слой с карты.</li>
+                </ul>
+                <p>Слои сортируются по <code>id</code> / <code>properties.id</code> / <code>properties.name</code>. Если точек больше одной — они соединяются линией (визуально, в экспорт не попадает).</p>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">🪟</span> Плавающие окна</h4>
+                <ul>
+                    <li><b>Перетаскивание</b> — схватите окно за шапку и переместите.</li>
+                    <li><b>—</b> — свернуть окно в шапку.</li>
+                    <li><b>✕</b> — скрыть окно. В углу экрана появится круглая кнопка для возврата.</li>
+                    <li>Позиция и состояние окон сохраняются в браузере (<code>localStorage</code>) — после перезагрузки страницы окна останутся там же.</li>
+                </ul>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">🤖</span> Геолокация</h4>
+                <ul>
+                    <li><b>Кнопка 🤖</b> (правый нижний угол) — определяет ваше местоположение и ставит маркер на карте.</li>
+                    <li>Требуется разрешение браузера на доступ к геолокации.</li>
+                </ul>
+            </div>
+
+            <div class="details-section">
+                <h4><span class="ds-icon">⌨️</span> Горячие клавиши</h4>
+                <ul>
+                    <li><kbd>Esc</kbd> — отменить режим вставки точки / закрыть модальное окно / закрыть меню экспорта-импорта.</li>
+                </ul>
+            </div>
+
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn modal-btn-cancel" id="detailsCloseBtn" type="button">Закрыть</button>
+        </div>
+    </div>
+</div>
+
+<script src="https://api-maps.yandex.ru/2.1/?apikey=7d63d6f0-6df2-475f-a7cd-4354a87ce87b&lang=ru_RU"></script>
+<script src="https://yandex.st/jquery/2.2.3/jquery.min.js"></script>
+
+<script>
+    /* =========================================================
+       ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ
+       ========================================================= */
+    let myMap;
+    let layers = [];
+    let colorIndex = 0;
+    let userPlacemark = null;
+
+    let routePoints = [];
+    let routePolyline = null;
+    let addMode = true;
+    let draggedIdx = null;
+
+    let pendingInsertIndex = null;
+
+    const ROUTE_COLOR = '#e74c3c';
+
+    const colorPalette = [
+        '#E74C3C', '#2ECC71', '#3498DB', '#F39C12', '#9B59B6',
+        '#1ABC9C', '#E67E22', '#34495E', '#16A085', '#C0392B',
+        '#27AE60', '#2980B9', '#8E44AD', '#D35400', '#7F8C8D',
+        '#FF6B6B', '#4ECDC4', '#45B7D1', '#96CEB4', '#FFEAA7'
+    ];
+
+    function getNextColor() {
+        return colorPalette[colorIndex++ % colorPalette.length];
+    }
+
+    /* =========================================================
+       ГЕОМЕТРИЯ И УТИЛИТЫ
+       ========================================================= */
+    function haversine(a, b) {
+        const R = 6371000;
+        const toRad = d => d * Math.PI / 180;
+        const dLat = toRad(b.lat - a.lat);
+        const dLon = toRad(b.lon - a.lon);
+        const la1 = toRad(a.lat);
+        const la2 = toRad(b.lat);
+        const h = Math.sin(dLat / 2) ** 2 +
+                  Math.cos(la1) * Math.cos(la2) * Math.sin(dLon / 2) ** 2;
+        return 2 * R * Math.asin(Math.sqrt(h));
+    }
+
+    function routeTotalDistance() {
+        let total = 0;
+        for (let i = 1; i < routePoints.length; i++) {
+            total += haversine(routePoints[i - 1], routePoints[i]);
+        }
+        return total;
+    }
+
+    function formatDistance(m) {
+        if (m < 1000) return m.toFixed(1) + ' м';
+        return (m / 1000).toFixed(2) + ' км';
+    }
+
+    function roundCoord(v, digits = 6) {
+        const k = Math.pow(10, digits);
+        return Math.round(v * k) / k;
+    }
+
+    const TRANSLIT_MAP = {
+        'а':'a','б':'b','в':'v','г':'g','д':'d','е':'e','ё':'e','ж':'zh','з':'z',
+        'и':'i','й':'y','к':'k','л':'l','м':'m','н':'n','о':'o','п':'p','р':'r',
+        'с':'s','т':'t','у':'u','ф':'f','х':'h','ц':'ts','ч':'ch','ш':'sh','щ':'sch',
+        'ъ':'','ы':'y','ь':'','э':'e','ю':'yu','я':'ya'
+    };
+
+    function transliterate(str) {
+        let out = '';
+        for (const ch of String(str).toLowerCase()) {
+            out += (TRANSLIT_MAP[ch] !== undefined) ? TRANSLIT_MAP[ch] : ch;
+        }
+        return out;
+    }
+
+    function makeSafeName(name) {
+        let s = transliterate(name || '');
+        s = s.replace(/[^a-z0-9]+/gi, '_');
+        s = s.replace(/_+/g, '_');
+        s = s.replace(/^_+|_+$/g, '');
+        s = s.toLowerCase();
+        return s || 'route';
+    }
+
+    function downloadFile(content, filename, mime) {
+        const blob = new Blob([content], { type: mime });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function getRouteBaseName() {
+        const rawName = (document.getElementById('routeName').value || '').trim() || 'route';
+        return { rawName, baseName: makeSafeName(rawName) };
+    }
+
+    /* =========================================================
+       ПЛАВАЮЩИЕ ОКНА
+       ========================================================= */
+    const STORAGE_KEY = 'geojson_viewer_windows_v1';
+
+    function loadWindowState() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch (_) { return {}; }
+    }
+
+    function saveWindowState(state) {
+        try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (_) {}
+    }
+
+    function makeWindowDraggable(winEl, headerEl, key) {
+        let dragging = false;
+        let startX = 0, startY = 0, startLeft = 0, startTop = 0;
+
+        const onDown = (e) => {
+            if (e.target.closest('.win-btn')) return;
+            const pt = e.touches ? e.touches[0] : e;
+            dragging = true;
+            startX = pt.clientX;
+            startY = pt.clientY;
+            const rect = winEl.getBoundingClientRect();
+            startLeft = rect.left;
+            startTop = rect.top;
+            winEl.style.left = startLeft + 'px';
+            winEl.style.top = startTop + 'px';
+            winEl.style.right = 'auto';
+            document.body.classList.add('dragging-window');
+            focusWindow(winEl);
+            e.preventDefault();
+        };
+
+        const onMove = (e) => {
+            if (!dragging) return;
+            const pt = e.touches ? e.touches[0] : e;
+            let newLeft = startLeft + (pt.clientX - startX);
+            let newTop = startTop + (pt.clientY - startY);
+
+            const w = winEl.offsetWidth;
+            const h = winEl.offsetHeight;
+            const maxLeft = window.innerWidth - w;
+            const maxTop = window.innerHeight - h;
+            newLeft = Math.max(0, Math.min(newLeft, maxLeft));
+            newTop = Math.max(0, Math.min(newTop, maxTop));
+
+            winEl.style.left = newLeft + 'px';
+            winEl.style.top = newTop + 'px';
+            winEl.style.right = 'auto';
+        };
+
+        const onUp = () => {
+            if (!dragging) return;
+            dragging = false;
+            document.body.classList.remove('dragging-window');
+            const st = loadWindowState();
+            st[key] = st[key] || {};
+            st[key].left = winEl.style.left;
+            st[key].top = winEl.style.top;
+            saveWindowState(st);
+        };
+
+        headerEl.addEventListener('mousedown', onDown);
+        headerEl.addEventListener('touchstart', onDown, { passive: false });
+        document.addEventListener('mousemove', onMove);
+        document.addEventListener('touchmove', onMove, { passive: false });
+        document.addEventListener('mouseup', onUp);
+        document.addEventListener('touchend', onUp);
+    }
+
+    function focusWindow(winEl) {
+        document.querySelectorAll('.floating-window').forEach(w => w.classList.remove('focused'));
+        winEl.classList.add('focused');
+    }
+
+    function restoreWindowPosition(winEl, key) {
+        const st = loadWindowState();
+        const pos = st[key];
+        if (pos && pos.left && pos.top) {
+            winEl.style.left = pos.left;
+            winEl.style.top = pos.top;
+            winEl.style.right = 'auto';
+        }
+    }
+
+    function setupWindows() {
+        const routeWin = document.getElementById('routeWindow');
+        const layersWin = document.getElementById('layersWindow');
+
+        makeWindowDraggable(routeWin, document.getElementById('routeHeader'), 'route');
+        makeWindowDraggable(layersWin, document.getElementById('layersHeader'), 'layers');
+
+        restoreWindowPosition(routeWin, 'route');
+        restoreWindowPosition(layersWin, 'layers');
+
+        const st = loadWindowState();
+        if (st.route && st.route.minimized) routeWin.classList.add('minimized');
+        if (st.route && st.route.hidden) {
+            routeWin.classList.add('hidden');
+            document.getElementById('restoreRoute').classList.add('visible');
+        }
+        if (st.layers && st.layers.minimized) layersWin.classList.add('minimized');
+        if (st.layers && st.layers.hidden) {
+            layersWin.classList.add('hidden');
+            document.getElementById('restoreLayers').classList.add('visible');
+        }
+
+        [routeWin, layersWin].forEach(w => {
+            w.addEventListener('mousedown', () => focusWindow(w));
+        });
+
+        document.getElementById('routeMinBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const min = routeWin.classList.toggle('minimized');
+            const s = loadWindowState(); s.route = s.route || {}; s.route.minimized = min; saveWindowState(s);
+        });
+        document.getElementById('layersMinBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            const min = layersWin.classList.toggle('minimized');
+            const s = loadWindowState(); s.layers = s.layers || {}; s.layers.minimized = min; saveWindowState(s);
+        });
+
+        document.getElementById('routeCloseBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            routeWin.classList.add('hidden');
+            document.getElementById('restoreRoute').classList.add('visible');
+            const s = loadWindowState(); s.route = s.route || {}; s.route.hidden = true; saveWindowState(s);
+        });
+        document.getElementById('layersCloseBtn').addEventListener('click', (e) => {
+            e.stopPropagation();
+            layersWin.classList.add('hidden');
+            document.getElementById('restoreLayers').classList.add('visible');
+            const s = loadWindowState(); s.layers = s.layers || {}; s.layers.hidden = true; saveWindowState(s);
+        });
+
+        document.getElementById('restoreRoute').addEventListener('click', () => {
+            routeWin.classList.remove('hidden');
+            document.getElementById('restoreRoute').classList.remove('visible');
+            focusWindow(routeWin);
+            const s = loadWindowState(); s.route = s.route || {}; s.route.hidden = false; saveWindowState(s);
+        });
+        document.getElementById('restoreLayers').addEventListener('click', () => {
+            layersWin.classList.remove('hidden');
+            document.getElementById('restoreLayers').classList.remove('visible');
+            focusWindow(layersWin);
+            const s = loadWindowState(); s.layers = s.layers || {}; s.layers.hidden = false; saveWindowState(s);
+        });
+
+        window.addEventListener('resize', () => {
+            [routeWin, layersWin].forEach(w => {
+                if (w.classList.contains('hidden')) return;
+                const rect = w.getBoundingClientRect();
+                const maxLeft = window.innerWidth - rect.width;
+                const maxTop = window.innerHeight - rect.height;
+                if (rect.left > maxLeft) w.style.left = Math.max(0, maxLeft) + 'px';
+                if (rect.top > maxTop) w.style.top = Math.max(0, maxTop) + 'px';
+            });
+        });
+    }
+
+    /* =========================================================
+       ЯНДЕКС.КАРТЫ: ССЫЛКА + КОПИРОВАНИЕ + ОТКРЫТИЕ
+       ========================================================= */
+    function buildYandexMapsUrl(points, zoom = 15) {
+        if (!points || points.length === 0) return null;
+        let sumLat = 0, sumLon = 0;
+        points.forEach(p => { sumLat += p.lat; sumLon += p.lon; });
+        const cLat = sumLat / points.length;
+        const cLon = sumLon / points.length;
+        const ll = `${cLon.toFixed(6)}%2C${cLat.toFixed(6)}`;
+        const rtext = points
+            .map(p => `${p.lat.toFixed(6)}%2C${p.lon.toFixed(6)}`)
+            .join('~');
+        const ruri = '~'.repeat(points.length);
+        return `https://yandex.ru/maps/?ll=${ll}&mode=routes&rtext=${rtext}&rtt=sc&ruri=${ruri}&z=${zoom}`;
+    }
+
+    async function copyText(text) {
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+                return true;
+            }
+        } catch (e) { /* fallthrough */ }
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.setAttribute('readonly', '');
+        ta.style.position = 'fixed';
+        ta.style.left = '-9999px';
+        ta.style.top = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        ta.setSelectionRange(0, ta.value.length);
+        let ok = false;
+        try { ok = document.execCommand('copy'); } catch (_) { ok = false; }
+        document.body.removeChild(ta);
+        return ok;
+    }
+
+    function openYandexUrl(url) {
+        const w = window.open(url, '_blank', 'noopener,noreferrer');
+        if (!w) {
+            flashRouteStatus('⚠️ Всплывающее окно заблокировано. Ссылка в буфере — вставьте вручную.', true);
+            return false;
+        }
+        return true;
+    }
+
+    function layerToPoints(layer) {
+        return layer.placemarks.map(pm => {
+            const c = pm.geometry.getCoordinates();
+            return { lat: c[0], lon: c[1] };
+        });
+    }
+
+    async function copyRouteYandexLink() {
+        if (routePoints.length === 0) {
+            flashRouteStatus('❌ Нет точек для ссылки', true);
+            return;
+        }
+        const points = routePoints.map(p => ({ lat: p.lat, lon: p.lon }));
+        const url = buildYandexMapsUrl(points, 15);
+        const ok = await copyText(url);
+        const opened = openYandexUrl(url);
+        if (ok && opened) flashRouteStatus('✅ Ссылка скопирована и открыта в новой вкладке');
+        else if (ok) flashRouteStatus('✅ Ссылка скопирована в буфер');
+        else if (opened) flashRouteStatus('✅ Ссылка открыта в новой вкладке');
+        else { flashRouteStatus('❌ Не удалось скопировать. URL в консоли', true); console.log(url); }
+    }
+
+    async function copyLayerYandexLink(layer) {
+        const points = layerToPoints(layer);
+        if (points.length === 0) { setStatus('❌ В слое нет точек', true); return; }
+        const url = buildYandexMapsUrl(points, 15);
+        const ok = await copyText(url);
+        const opened = openYandexUrl(url);
+        if (ok && opened) setStatus(`✅ Ссылка для «${layer.name}» скопирована и открыта`);
+        else if (ok) setStatus(`✅ Ссылка для «${layer.name}» скопирована`);
+        else if (opened) setStatus(`✅ Ссылка для «${layer.name}» открыта`);
+        else { setStatus('❌ Не удалось скопировать', true); console.log(url); }
+    }
+
+    /* =========================================================
+       ПАРСЕРЫ ИМПОРТА
+       ========================================================= */
+    function parseYandexLink(rawInput) {
+        if (!rawInput || !rawInput.trim()) {
+            return { points: [], error: 'Вставьте ссылку' };
+        }
+        let text = rawInput.trim();
+        let m = text.match(/[?&#]rtext=([^&\s]+)/i);
+        if (!m) {
+            if (text.includes('~') || /^-?\d+\.\d+\s*,\s*-?\d+\.\d+/.test(text)) {
+                m = [null, text];
+            } else {
+                return { points: [], error: 'Параметр rtext не найден в ссылке' };
+            }
+        }
+        let payload = m[1];
+        try { payload = decodeURIComponent(payload.replace(/\+/g, '%20')); }
+        catch (_) { /* ignore */ }
+        const parts = payload.split('~');
+        const points = [];
+        for (const part of parts) {
+            const seg = part.trim();
+            if (!seg) continue;
+            const [a, b] = seg.split(',').map(s => parseFloat(s.trim()));
+            if (isNaN(a) || isNaN(b)) continue;
+            if (a < -90 || a > 90 || b < -180 || b > 180) continue;
+            points.push({ lat: a, lon: b });
+        }
+        if (points.length === 0) {
+            return { points: [], error: 'Не удалось извлечь ни одной точки' };
+        }
+        return { points, error: null };
+    }
+
+    function parsePlainText(text) {
+        const points = [];
+        const lines = String(text).split(/\r?\n/);
+        for (const line of lines) {
+            const s = line.trim();
+            if (!s) continue;
+            const parts = s.split(/[,\s;]+/).map(x => parseFloat(x.replace(',', '.')));
+            if (parts.length < 2) continue;
+            const [a, b] = parts;
+            if (isNaN(a) || isNaN(b)) continue;
+            if (a < -90 || a > 90 || b < -180 || b > 180) continue;
+            points.push({ lat: a, lon: b });
+        }
+        return points;
+    }
+
+    function parseGeoJSONPoints(data) {
+        const points = [];
+        if (!data) return points;
+        const features = data.type === 'FeatureCollection' ? data.features
+                       : data.type === 'Feature' ? [data]
+                       : [];
+        for (const f of features) {
+            const g = f.geometry;
+            if (!g || g.type !== 'Point') continue;
+            const c = g.coordinates;
+            if (!c || c.length < 2) continue;
+            const lon = parseFloat(c[0]);
+            const lat = parseFloat(c[1]);
+            if (isNaN(lat) || isNaN(lon)) continue;
+            if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+            points.push({ lat, lon });
+        }
+        return points;
+    }
+
+    function parseGPXPoints(text) {
+        const points = [];
+        try {
+            const doc = new DOMParser().parseFromString(text, 'application/xml');
+            const nodes = doc.querySelectorAll('wpt, trkpt');
+            nodes.forEach(n => {
+                const lat = parseFloat(n.getAttribute('lat'));
+                const lon = parseFloat(n.getAttribute('lon'));
+                if (isNaN(lat) || isNaN(lon)) return;
+                if (lat < -90 || lat > 90 || lon < -180 || lon > 180) return;
+                points.push({ lat, lon });
+            });
+        } catch (_) { /* ignore */ }
+        return points;
+    }
+
+    function parseKMLPoints(text) {
+        const points = [];
+        try {
+            const doc = new DOMParser().parseFromString(text, 'application/xml');
+            const pointNodes = doc.getElementsByTagName('Point');
+            for (let i = 0; i < pointNodes.length; i++) {
+                const coordNode = pointNodes[i].getElementsByTagName('coordinates')[0];
+                if (!coordNode) continue;
+                const raw = (coordNode.textContent || '').trim();
+                const [lonStr, latStr] = raw.split(',');
+                const lon = parseFloat(lonStr);
+                const lat = parseFloat(latStr);
+                if (isNaN(lat) || isNaN(lon)) continue;
+                if (lat < -90 || lat > 90 || lon < -180 || lon > 180) continue;
+                points.push({ lat, lon });
+            }
+        } catch (_) { /* ignore */ }
+        return points;
+    }
+
+    function parseCSVPoints(text) {
+        const points = [];
+        const lines = String(text).split(/\r?\n/);
+        let isFirst = true;
+        for (const line of lines) {
+            const s = line.trim();
+            if (!s) continue;
+            const parts = s.split(/[;,]/).map(x => x.trim().replace(',', '.'));
+            if (parts.length < 2) { isFirst = false; continue; }
+            const a = parseFloat(parts[0]);
+            const b = parseFloat(parts[1]);
+            if (isFirst) {
+                isFirst = false;
+                if (isNaN(a) || isNaN(b)) continue;
+            }
+            if (isNaN(a) || isNaN(b)) continue;
+            if (a < -90 || a > 90 || b < -180 || b > 180) continue;
+            points.push({ lat: a, lon: b });
+        }
+        return points;
+    }
+
+    function readFileAsText(file) {
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = (e) => resolve(e.target.result);
+            reader.onerror = reject;
+            reader.readAsText(file);
+        });
+    }
+
+    /* =========================================================
+       ЭКСПОРТ (ТОЛЬКО ТОЧКИ)
+       ========================================================= */
+    function ensurePoints() {
+        if (routePoints.length === 0) {
+            flashRouteStatus('❌ Нет точек для экспорта', true);
+            return false;
+        }
+        return true;
+    }
+
+    function exportGeoJSON() {
+        if (!ensurePoints()) return;
+        const { rawName, baseName } = getRouteBaseName();
+        const total = routeTotalDistance();
+        const features = routePoints.map((p, i) => ({
+            type: 'Feature',
+            id: i + 1,
+            geometry: {
+                type: 'Point',
+                coordinates: [roundCoord(p.lon), roundCoord(p.lat)]
+            },
+            properties: {
+                id: i + 1,
+                index: i + 1,
+                name: baseName + '_' + (i + 1),
+                route: baseName
+            }
+        }));
+        const fc = {
+            type: 'FeatureCollection',
+            name: baseName,
+            properties: {
+                name: baseName,
+                title: rawName,
+                pointCount: routePoints.length,
+                distance_m: Math.round(total)
+            },
+            features: features
+        };
+        downloadFile(JSON.stringify(fc, null, 2), baseName + '.geojson', 'application/geo+json');
+        flashRouteStatus('✅ Экспорт GeoJSON: ' + baseName + '.geojson');
+    }
+
+    function exportGPX() {
+        if (!ensurePoints()) return;
+        const { baseName, rawName } = getRouteBaseName();
+        let gpx = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        gpx += '<gpx version="1.1" creator="GeoJSON Viewer" xmlns="http://www.topografix.com/GPX/1/1">\n';
+        gpx += '  <trk>\n    <name>' + escapeXml(rawName) + '</name>\n    <trkseg>\n';
+        routePoints.forEach(p => {
+            gpx += `      <trkpt lat="${roundCoord(p.lat)}" lon="${roundCoord(p.lon)}"></trkpt>\n`;
+        });
+        gpx += '    </trkseg>\n  </trk>\n</gpx>';
+        downloadFile(gpx, baseName + '.gpx', 'application/gpx+xml');
+        flashRouteStatus('✅ Экспорт GPX: ' + baseName + '.gpx');
+    }
+
+    function exportKML() {
+        if (!ensurePoints()) return;
+        const { baseName, rawName } = getRouteBaseName();
+        let kml = '<?xml version="1.0" encoding="UTF-8"?>\n';
+        kml += '<kml xmlns="http://www.opengis.net/kml/2.2">\n  <Document>\n';
+        kml += '    <name>' + escapeXml(rawName) + '</name>\n';
+        routePoints.forEach((p, i) => {
+            kml += '    <Placemark>\n';
+            kml += '      <name>' + escapeXml(rawName + ' ' + (i + 1)) + '</name>\n';
+            kml += '      <Point><coordinates>' + roundCoord(p.lon) + ',' + roundCoord(p.lat) + ',0</coordinates></Point>\n';
+            kml += '    </Placemark>\n';
+        });
+        kml += '  </Document>\n</kml>';
+        downloadFile(kml, baseName + '.kml', 'application/vnd.google-earth.kml+xml');
+        flashRouteStatus('✅ Экспорт KML: ' + baseName + '.kml');
+    }
+
+    function exportCSV() {
+        if (!ensurePoints()) return;
+        const { baseName } = getRouteBaseName();
+        let csv = 'index,lat,lon\n';
+        routePoints.forEach((p, i) => {
+            csv += `${i + 1},${roundCoord(p.lat)},${roundCoord(p.lon)}\n`;
+        });
+        downloadFile(csv, baseName + '.csv', 'text/csv;charset=utf-8');
+        flashRouteStatus('✅ Экспорт CSV: ' + baseName + '.csv');
+    }
+
+    function exportWKT() {
+        if (!ensurePoints()) return;
+        const { baseName } = getRouteBaseName();
+        let txt = '';
+        routePoints.forEach(p => {
+            txt += `POINT (${roundCoord(p.lon)} ${roundCoord(p.lat)})\n`;
+        });
+        downloadFile(txt, baseName + '_wkt.txt', 'text/plain;charset=utf-8');
+        flashRouteStatus('✅ Экспорт WKT: ' + baseName + '_wkt.txt');
+    }
+
+    function exportTXT() {
+        if (!ensurePoints()) return;
+        const { baseName } = getRouteBaseName();
+        let txt = '';
+        routePoints.forEach(p => {
+            txt += `${roundCoord(p.lat)},${roundCoord(p.lon)}\n`;
+        });
+        downloadFile(txt, baseName + '.txt', 'text/plain;charset=utf-8');
+        flashRouteStatus('✅ Экспорт TXT: ' + baseName + '.txt');
+    }
+
+    function escapeXml(s) {
+        return String(s)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+    }
+
+    /* =========================================================
+       ИМПОРТ: ОБЩАЯ ФУНКЦИЯ
+       ========================================================= */
+    function applyImportedPoints(points, sourceLabel) {
+        if (!points || points.length === 0) {
+            flashRouteStatus('❌ Не найдено ни одной точки', true);
+            return;
+        }
+        points.forEach(p => addRoutePoint(p.lat, p.lon, true));
+        updateRoute();
+        renderRouteList();
+
+        const coords = routePoints.map(p => [p.lat, p.lon]);
+        try {
+            const bounds = ymaps.util.bounds.fromPoints(coords);
+            myMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 60 });
+        } catch (_) { /* ignore */ }
+
+        flashRouteStatus(`✅ Импортировано ${points.length} точек (${sourceLabel})`);
+    }
+
+    /* =========================================================
+       МАРШРУТ: ТОЧКИ
+       ========================================================= */
+    function createRoutePlacemark(lat, lon, index) {
+        const pm = new ymaps.Placemark(
+            [lat, lon],
+            {
+                label: String(index),
+                hintContent: 'Точка ' + index + ' (перетащите, чтобы переместить)'
+            },
+            {
+                draggable: true,
+                iconLayout: 'default#imageWithContent',
+                iconImageSize: [30, 30],
+                iconImageOffset: [-15, -15],
+                iconContentOffset: [0, 0],
+                iconContentLayout: ymaps.templateLayoutFactory.createClass(
+                    '<div style="background:' + ROUTE_COLOR + ';border-radius:50%;width:28px;height:28px;' +
+                    'display:flex;align-items:center;justify-content:center;color:#fff;font-weight:bold;' +
+                    'font-size:12px;font-family:Arial;border:2px solid #fff;' +
+                    'box-shadow:0 1px 4px rgba(0,0,0,.4);">{{ properties.label }}</div>'
+                )
+            }
+        );
+        pm.events.add('dragend', () => {
+            const c = pm.geometry.getCoordinates();
+            const rec = routePoints.find(p => p.placemark === pm);
+            if (rec) {
+                rec.lat = c[0];
+                rec.lon = c[1];
+            }
+            updateRoute();
+            renderRouteList();
+        });
+        return pm;
+    }
+
+    function renumberPoints() {
+        routePoints.forEach((p, i) => p.placemark.properties.set('label', String(i + 1)));
+    }
+
+    function addRoutePoint(lat, lon, silent = false, insertAt = null) {
+        if (!routePolyline) {
+            routePolyline = new ymaps.Polyline(
+                [[lat, lon]], {},
+                { strokeColor: ROUTE_COLOR, strokeWidth: 4, strokeOpacity: 0.85 }
+            );
+            myMap.geoObjects.add(routePolyline);
+        }
+
+        const idx = (insertAt === null || insertAt === undefined)
+            ? routePoints.length
+            : Math.max(0, Math.min(insertAt, routePoints.length));
+
+        const pm = createRoutePlacemark(lat, lon, idx + 1);
+        routePoints.splice(idx, 0, { lat, lon, placemark: pm });
+        myMap.geoObjects.add(pm);
+        renumberPoints();
+
+        updateRoute();
+        renderRouteList();
+        if (!silent) flashRouteStatus('✅ Добавлена точка в позицию ' + (idx + 1));
+    }
+
+    function removeRoutePoint(index) {
+        const rec = routePoints[index];
+        if (!rec) return;
+        myMap.geoObjects.remove(rec.placemark);
+        routePoints.splice(index, 1);
+        renumberPoints();
+        if (pendingInsertIndex !== null) {
+            if (pendingInsertIndex > index) pendingInsertIndex--;
+            if (pendingInsertIndex > routePoints.length) pendingInsertIndex = routePoints.length;
+            if (pendingInsertIndex < 0) pendingInsertIndex = 0;
+        }
+        updateRoute();
+        renderRouteList();
+        refreshInsertUI();
+    }
+
+    function moveRoutePoint(fromIdx, toIdx) {
+        if (fromIdx === toIdx) return;
+        if (fromIdx < 0 || fromIdx >= routePoints.length) return;
+        if (toIdx < 0 || toIdx >= routePoints.length) return;
+        const [moved] = routePoints.splice(fromIdx, 1);
+        routePoints.splice(toIdx, 0, moved);
+        renumberPoints();
+        updateRoute();
+        renderRouteList();
+    }
+
+    function clearRoute(silent = false) {
+        routePoints.forEach(p => myMap.geoObjects.remove(p.placemark));
+        routePoints = [];
+        if (routePolyline) {
+            myMap.geoObjects.remove(routePolyline);
+            routePolyline = null;
+        }
+        cancelInsertMode();
+        updateRoute();
+        renderRouteList();
+        if (!silent) flashRouteStatus('🗑 Маршрут очищен');
+    }
+
+    function updateRoute() {
+        const coords = routePoints.map(p => [p.lat, p.lon]);
+        if (routePolyline && coords.length >= 1) {
+            routePolyline.geometry.setCoordinates(coords);
+        }
+        const total = routeTotalDistance();
+        const cntEl = document.getElementById('routePointCount');
+        const distEl = document.getElementById('routeDistance');
+        if (cntEl) cntEl.textContent = routePoints.length;
+        if (distEl) distEl.textContent = formatDistance(total);
+    }
+
+    function setInsertMode(index) {
+        pendingInsertIndex = index;
+        refreshInsertUI();
+        document.getElementById('map').classList.add('map-crosshair');
+    }
+
+    function cancelInsertMode() {
+        pendingInsertIndex = null;
+        refreshInsertUI();
+        applyAddModeCursor();
+    }
+
+    function refreshInsertUI() {
+        const hint = document.getElementById('insertHint');
+        const label = document.getElementById('insertPosLabel');
+        const routeWin = document.getElementById('routeWindow');
+        if (pendingInsertIndex !== null) {
+            hint.classList.add('visible');
+            routeWin.classList.add('insert-mode');
+            label.textContent = String(pendingInsertIndex + 1);
+        } else {
+            hint.classList.remove('visible');
+            routeWin.classList.remove('insert-mode');
+        }
+    }
+
+    /* =========================================================
+       РЕНДЕР СПИСКА ТОЧЕК
+       ========================================================= */
+    function renderRouteList() {
+        const box = document.getElementById('routePointsList');
+        if (!box) return;
+
+        box.innerHTML = '';
+
+        if (routePoints.length === 0) {
+            const empty = document.createElement('div');
+            empty.className = 'route-empty';
+            empty.innerHTML = 'Кликните по карте,<br>чтобы добавить точку';
+            box.appendChild(empty);
+
+            const slot = makeInsertSlot(0, 'в начало');
+            box.appendChild(slot);
+            return;
+        }
+
+        box.appendChild(makeInsertSlot(0, 'в начало'));
+
+        routePoints.forEach((p, i) => {
+            const row = makePointRow(p, i);
+            box.appendChild(row);
+            box.appendChild(makeInsertSlot(i + 1, 'после ' + (i + 1)));
+        });
+    }
+
+    function makeInsertSlot(index, label) {
+        const slot = document.createElement('div');
+        slot.className = 'insert-slot';
+        if (index === 0) slot.classList.add('at-start');
+        if (index === routePoints.length) slot.classList.add('at-end');
+        if (pendingInsertIndex === index) slot.classList.add('active');
+
+        const btn = document.createElement('button');
+        btn.className = 'insert-btn';
+        btn.type = 'button';
+        btn.textContent = '➕';
+        btn.title = 'Вставить точку ' + label;
+
+        const lbl = document.createElement('div');
+        lbl.className = 'insert-label';
+        lbl.textContent = 'Вставить ' + label;
+
+        slot.appendChild(btn);
+        slot.appendChild(lbl);
+
+        slot.addEventListener('click', (e) => {
+            e.stopPropagation();
+            if (pendingInsertIndex === index) {
+                cancelInsertMode();
+            } else {
+                setInsertMode(index);
+            }
+        });
+
+        return slot;
+    }
+
+    function makePointRow(p, i) {
+        const row = document.createElement('div');
+        row.className = 'point-row';
+        row.draggable = true;
+        row.dataset.idx = i;
+        row.innerHTML =
+            '<div class="point-handle" title="Перетащите, чтобы изменить порядок">☰</div>' +
+            '<div class="point-index">' + (i + 1) + '</div>' +
+            '<div class="point-coords">' + p.lat.toFixed(5) + ', ' + p.lon.toFixed(5) + '</div>' +
+            '<div class="point-actions">' +
+                '<button class="point-up" title="Вверх" ' + (i === 0 ? 'disabled' : '') + '>▲</button>' +
+                '<button class="point-down" title="Вниз" ' + (i === routePoints.length - 1 ? 'disabled' : '') + '>▼</button>' +
+                '<button class="point-del" title="Удалить точку">✕</button>' +
+            '</div>';
+
+        row.addEventListener('click', (e) => {
+            if (e.target.closest('button')) return;
+            myMap.setCenter([p.lat, p.lon], Math.max(myMap.getZoom(), 15), { duration: 300 });
+        });
+        row.querySelector('.point-up').addEventListener('click', (e) => {
+            e.stopPropagation();
+            moveRoutePoint(i, i - 1);
+        });
+        row.querySelector('.point-down').addEventListener('click', (e) => {
+            e.stopPropagation();
+            moveRoutePoint(i, i + 1);
+        });
+        row.querySelector('.point-del').addEventListener('click', (e) => {
+            e.stopPropagation();
+            removeRoutePoint(i);
+        });
+        row.addEventListener('dragstart', (e) => {
+            draggedIdx = i;
+            row.classList.add('dragging');
+            try { e.dataTransfer.effectAllowed = 'move'; } catch (_) {}
+            try { e.dataTransfer.setData('text/plain', String(i)); } catch (_) {}
+        });
+        row.addEventListener('dragend', () => {
+            row.classList.remove('dragging');
+            document.querySelectorAll('.point-row').forEach(r => r.classList.remove('drag-over'));
+            draggedIdx = null;
+        });
+        row.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            try { e.dataTransfer.dropEffect = 'move'; } catch (_) {}
+            if (draggedIdx !== null && draggedIdx !== i) row.classList.add('drag-over');
+        });
+        row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+        row.addEventListener('drop', (e) => {
+            e.preventDefault();
+            row.classList.remove('drag-over');
+            if (draggedIdx === null || draggedIdx === i) return;
+            moveRoutePoint(draggedIdx, i);
+            draggedIdx = null;
+        });
+
+        return row;
+    }
+
+    /* =========================================================
+       UI МАРШРУТА
+       ========================================================= */
+    function flashRouteStatus(text, isError = false) {
+        const el = document.getElementById('routeStatus');
+        if (!el) return;
+        el.innerHTML = text;
+        el.style.color = isError ? '#c0392b' : '#27ae60';
+        clearTimeout(el._t);
+        el._t = setTimeout(() => { el.innerHTML = ''; }, 3500);
+    }
+
+    function applyAddModeCursor() {
+        const mapEl = document.getElementById('map');
+        if (!mapEl) return;
+        if (pendingInsertIndex !== null || addMode) {
+            mapEl.classList.add('map-crosshair');
+        } else {
+            mapEl.classList.remove('map-crosshair');
+        }
+    }
+
+    /* =========================================================
+       МОДАЛ: ИМПОРТ
+       ========================================================= */
+    let modalMode = 'link';
+
+    function openImportModal(mode = 'link') {
+        const modal = document.getElementById('linkModal');
+        const input = document.getElementById('modalInput');
+        const status = document.getElementById('modalStatus');
+        const addBtn = document.getElementById('modalAdd');
+        const repBtn = document.getElementById('modalReplace');
+        const hint = document.getElementById('modalHint');
+        const title = document.getElementById('modalTitle');
+
+        modalMode = mode;
+        input.value = '';
+        status.textContent = '';
+        status.classList.remove('err');
+        addBtn.disabled = true;
+        repBtn.disabled = true;
+
+        document.querySelectorAll('.modal-tab').forEach(t => {
+            t.classList.toggle('active', t.dataset.mode === mode);
+        });
+
+        if (mode === 'link') {
+            title.textContent = '📎 Импорт из ссылки Яндекс.Карт';
+            hint.innerHTML = 'Вставьте ссылку, содержащую параметр <code>rtext=</code>.';
+            input.placeholder = 'https://yandex.ru/maps/?ll=...&rtext=55.742621,37.578078~...';
+        } else {
+            title.textContent = '📝 Импорт из текста (lat,lon)';
+            hint.innerHTML = 'Вставьте координаты построчно в формате <code>lat,lon</code> (или через пробел/точку с запятой).';
+            input.placeholder = '55.742621,37.578078\n55.742550,37.577622\n...';
+        }
+
+        modal.style.display = 'flex';
+        setTimeout(() => input.focus(), 60);
+
+        const update = () => {
+            const val = input.value;
+            let result;
+            if (modalMode === 'link') {
+                result = parseYandexLink(val);
+            } else {
+                const pts = parsePlainText(val);
+                result = pts.length ? { points: pts, error: null } : { points: [], error: 'Не удалось распознать координаты' };
+            }
+            if (result.error) {
+                status.textContent = val.trim() ? '⚠️ ' + result.error : '';
+                status.classList.toggle('err', val.trim().length > 0);
+                addBtn.disabled = true;
+                repBtn.disabled = true;
+            } else {
+                status.textContent = `✅ Найдено ${result.points.length} точек`;
+                status.classList.remove('err');
+                addBtn.disabled = false;
+                repBtn.disabled = false;
+            }
+        };
+        input.oninput = update;
+        input.onpaste = () => setTimeout(update, 0);
+
+        const onKey = (e) => { if (e.key === 'Escape') closeImportModal(); };
+        document.addEventListener('keydown', onKey);
+        modal._onKey = onKey;
+    }
+
+    function closeImportModal() {
+        const modal = document.getElementById('linkModal');
+        if (modal._onKey) document.removeEventListener('keydown', modal._onKey);
+        modal.style.display = 'none';
+    }
+
+    function applyModalImport(mode) {
+        const input = document.getElementById('modalInput');
+        const val = input.value;
+        let points;
+        if (modalMode === 'link') {
+            const r = parseYandexLink(val);
+            if (r.error) return;
+            points = r.points;
+        } else {
+            points = parsePlainText(val);
+        }
+        if (mode === 'replace') clearRoute(true);
+        applyImportedPoints(points, modalMode === 'link' ? 'ссылка' : 'текст');
+        closeImportModal();
+    }
+
+    /* =========================================================
+       МОДАЛ: ПОДРОБНАЯ СПРАВКА
+       ========================================================= */
+    function openDetailsModal() {
+        const modal = document.getElementById('detailsModal');
+        modal.style.display = 'flex';
+        const onKey = (e) => { if (e.key === 'Escape') closeDetailsModal(); };
+        document.addEventListener('keydown', onKey);
+        modal._onKey = onKey;
+    }
+
+    function closeDetailsModal() {
+        const modal = document.getElementById('detailsModal');
+        if (modal._onKey) document.removeEventListener('keydown', modal._onKey);
+        modal.style.display = 'none';
+    }
+
+    /* =========================================================
+       СЛОИ GEOJSON
+       ========================================================= */
+    function getCoordinates(coords, swapXY) {
+        if (!coords || coords.length < 2) return null;
+        if (swapXY) return { lat: coords[0], lon: coords[1] };
+        return { lat: coords[1], lon: coords[0] };
+    }
+
+    function getPointId(feature, idx) {
+        if (feature.id !== undefined && feature.id !== null) return feature.id;
+        if (feature.properties?.id !== undefined) return feature.properties.id;
+        if (feature.properties?.name !== undefined) return feature.properties.name;
+        if (feature.properties?.title !== undefined) return feature.properties.title;
+        return idx + 1;
+    }
+
+    function sortPointsById(features) {
+        return features.slice().sort((a, b) => {
+            let idA = getPointId(a, 0);
+            let idB = getPointId(b, 0);
+            let numA = parseFloat(idA);
+            let numB = parseFloat(idB);
+            if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+            return String(idA).localeCompare(String(idB));
+        });
+    }
+
+    function createLayerFromGeoJSON(geojson, fileName, color, mapInstance, swapXY = false) {
+        if (!geojson.features || geojson.features.length === 0) return null;
+        const sorted = sortPointsById(geojson.features);
+        const points = [];
+        for (let i = 0; i < sorted.length; i++) {
+            const f = sorted[i];
+            const geom = f.geometry;
+            if (!geom || geom.type !== 'Point') continue;
+            const coord = getCoordinates(geom.coordinates, swapXY);
+            if (!coord) continue;
+            if (coord.lat < -90 || coord.lat > 90 || coord.lon < -180 || coord.lon > 180) continue;
+            points.push({ id: getPointId(f, i), lat: coord.lat, lon: coord.lon });
+        }
+        if (points.length === 0) return null;
+        points.sort((a, b) => {
+            let na = parseFloat(a.id), nb = parseFloat(b.id);
+            if (!isNaN(na) && !isNaN(nb)) return na - nb;
+            return String(a.id).localeCompare(String(b.id));
+        });
+        const coordinatesLine = points.map(p => [p.lat, p.lon]);
+        const placemarks = [];
+        points.forEach(point => {
+            let display = String(point.id);
+            if (display.length > 8) display = display.substring(0, 7) + '…';
+            const placemark = new ymaps.Placemark(
+                [point.lat, point.lon],
+                {},
+                {
+                    iconLayout: 'default#imageWithContent',
+                    iconImageSize: [28, 28],
+                    iconImageOffset: [-14, -14],
+                    iconContentOffset: [0, 0],
+                    iconContentLayout: ymaps.templateLayoutFactory.createClass(
+                        `<div style="background: ${color}; border-radius: 50%; width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; color: white; font-weight: bold; font-size: 11px; font-family: Arial; border: 2px solid white; box-shadow: 0 1px 3px rgba(0,0,0,0.3);">${display}</div>`
+                    )
+                }
+            );
+            placemarks.push(placemark);
+        });
+        let polyline = null;
+        if (coordinatesLine.length > 1) {
+            polyline = new ymaps.Polyline(coordinatesLine, {}, {
+                strokeColor: color, strokeWidth: 2.5, strokeOpacity: 0.7
+            });
+        }
+        return {
+            id: fileName + '_' + Date.now() + '_' + Math.random(),
+            name: fileName, color, visible: true, swapXY,
+            placemarks, polyline,
+            pointCount: points.length,
+            map: mapInstance,
+            rawData: geojson
+        };
+    }
+
+    function toggleSwapXY(layer) {
+        const newSwap = !layer.swapXY;
+        const newLayer = createLayerFromGeoJSON(layer.rawData, layer.name, layer.color, layer.map, newSwap);
+        if (!newLayer) {
+            setStatus('❌ Инверсия дала некорректные координаты', true);
+            return;
+        }
+        layer.placemarks.forEach(p => layer.map.geoObjects.remove(p));
+        if (layer.polyline) layer.map.geoObjects.remove(layer.polyline);
+        const index = layers.findIndex(l => l.id === layer.id);
+        if (index !== -1) {
+            newLayer.id = layer.id;
+            newLayer.visible = layer.visible;
+            layers[index] = newLayer;
+            if (newLayer.visible) {
+                newLayer.placemarks.forEach(p => newLayer.map.geoObjects.add(p));
+                if (newLayer.polyline) newLayer.map.geoObjects.add(newLayer.polyline);
+            }
+            updateLayersUI();
+        }
+    }
+
+    function addLayer(geojson, fileName, color, mapInstance, centerIfFirst = false, swapXY = false) {
+        const layer = createLayerFromGeoJSON(geojson, fileName, color, mapInstance, swapXY);
+        if (!layer) return false;
+        if (layer.visible) {
+            layer.placemarks.forEach(p => mapInstance.geoObjects.add(p));
+            if (layer.polyline) mapInstance.geoObjects.add(layer.polyline);
+        }
+        layers.push(layer);
+        updateLayersUI();
+        if (centerIfFirst && layers.length === 1 && layer.placemarks.length) {
+            const coords = layer.placemarks.map(p => p.geometry.getCoordinates());
+            const bounds = ymaps.util.bounds.fromPoints(coords);
+            mapInstance.setBounds(bounds, { checkZoomRange: true, zoomMargin: 40 });
+        }
+        return true;
+    }
+
+    function removeLayer(layer) {
+        layer.placemarks.forEach(p => layer.map.geoObjects.remove(p));
+        if (layer.polyline) layer.map.geoObjects.remove(layer.polyline);
+        const index = layers.findIndex(l => l.id === layer.id);
+        if (index !== -1) layers.splice(index, 1);
+        updateLayersUI();
+    }
+
+    function setLayerVisibility(layer, visible) {
+        layer.visible = visible;
+        layer.placemarks.forEach(p => visible ? layer.map.geoObjects.add(p) : layer.map.geoObjects.remove(p));
+        if (layer.polyline) visible ? layer.map.geoObjects.add(layer.polyline) : layer.map.geoObjects.remove(layer.polyline);
+    }
+
+    function updateLayersUI() {
+        const container = document.getElementById('layersList');
+        if (!container) return;
+        if (layers.length === 0) {
+            container.innerHTML = '<div class="no-files">📁 Нет загруженных слоёв<br>Нажмите "Сканировать папку"</div>';
+            return;
+        }
+        container.innerHTML = '';
+        layers.forEach((layer, idx) => {
+            const div = document.createElement('div');
+            div.className = 'layer-item';
+            div.style.borderLeftColor = layer.color;
+            div.innerHTML = `
+                <div class="layer-header">
+                    <input type="checkbox" id="layer_${idx}" ${layer.visible ? 'checked' : ''}>
+                    <div class="layer-name">🗺️ ${layer.name}</div>
+                    <button class="remove-layer" data-idx="${idx}">✕</button>
+                </div>
+                <div class="layer-stats">📍 ${layer.pointCount} точек | ${layer.polyline ? '🔗 соединены' : '🔘 без линии'}</div>
+                <div class="coord-switch">
+                    <button class="swap-btn" data-idx="${idx}">🔄 Инверсия XY</button>
+                    <span class="coord-status">${layer.swapXY ? 'Инверсия: вкл' : 'Инверсия: выкл'}</span>
+                </div>
+                <div class="layer-actions">
+                    <button class="yandex-layer-btn" data-idx="${idx}" title="Скопировать ссылку и открыть в Яндекс.Картах">🔗 Яндекс.Карты</button>
+                </div>
+            `;
+            div.querySelector('input').addEventListener('change', (e) => setLayerVisibility(layer, e.target.checked));
+            div.querySelector('.swap-btn').addEventListener('click', () => toggleSwapXY(layer));
+            div.querySelector('.remove-layer').addEventListener('click', () => removeLayer(layer));
+            div.querySelector('.yandex-layer-btn').addEventListener('click', () => copyLayerYandexLink(layer));
+            container.appendChild(div);
+        });
+    }
+
+    function setStatus(text, isError = false) {
+        const el = document.getElementById('statusMsg');
+        if (el) {
+            el.innerHTML = text;
+            el.style.color = isError ? '#c0392b' : '#27ae60';
+            setTimeout(() => {
+                if (document.getElementById('statusMsg')?.innerHTML === text) {
+                    document.getElementById('statusMsg').innerHTML = '';
+                }
+            }, 4000);
+        }
+    }
+
+    /* ========== СКАНИРОВАНИЕ ========== */
+    function scanDirectoryListing() {
+        return new Promise((resolve, reject) => {
+            $.ajax({
+                url: './', type: 'GET', timeout: 5000,
+                success: function (data) {
+                    const jsonFiles = [];
+                    const regex = /href="([^"]*\.(?:geojson|json))"/gi;
+                    let match;
+                    while ((match = regex.exec(data)) !== null) {
+                        let filename = match[1];
+                        if (!filename.startsWith('/') && !filename.startsWith('http')) {
+                            jsonFiles.push(filename);
+                        }
+                    }
+                    resolve(jsonFiles);
+                },
+                error: () => reject()
+            });
+        });
+    }
+
+    function tryKnownFiles() {
+        const known = [
+            'numbered_points.geojson', 'data.json', 'points.geojson',
+            'map.geojson', 'numbered_points.json',
+            'ml_planner_tl_barrier_country.geojson',
+            'ml_planner_tl_barrier_country_2.geojson',
+            'ml_planner_tl_cross.geojson'
+        ];
+        const promises = known.map(filename =>
+            $.ajax({ url: filename, dataType: 'json', timeout: 3000 })
+                .then(geojson => {
+                    if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
+                        let name = filename.replace(/\.(geojson|json)$/i, '');
+                        const color = getNextColor();
+                        const isFirst = layers.length === 0;
+                        if (addLayer(geojson, name, color, myMap, isFirst, false)) return 1;
+                    }
+                    return 0;
+                })
+                .catch(() => 0)
+        );
+        return Promise.all(promises).then(r => r.reduce((a, b) => a + b, 0));
+    }
+
+    async function fullScan(showStatus = true) {
+        if (showStatus) setStatus('🔍 Сканирование папки...');
+        const filesFromDir = await scanDirectoryListing().catch(() => []);
+        if (filesFromDir.length > 0) {
+            if (showStatus) setStatus(`✅ Найдено ${filesFromDir.length} файлов. Загрузка...`);
+            let loadedCount = 0;
+            for (const filename of filesFromDir) {
+                if (layers.some(l => l.name === filename.replace(/\.(geojson|json)$/i, ''))) continue;
+                const geojson = await $.ajax({ url: filename, dataType: 'json', timeout: 5000 }).catch(() => null);
+                if (geojson && geojson.type === 'FeatureCollection' && geojson.features?.length) {
+                    let name = filename.replace(/\.(geojson|json)$/i, '');
+                    if (name.length > 25) name = name.slice(0, 22) + '…';
+                    const color = getNextColor();
+                    const isFirst = layers.length === 0;
+                    if (addLayer(geojson, name, color, myMap, isFirst, false)) loadedCount++;
+                }
+            }
+            if (showStatus) setStatus(`✅ Загружено ${loadedCount} файлов`);
+        } else {
+            if (showStatus) setStatus('⚠️ Сканирование папки недоступно, ищу известные файлы...');
+            const loaded = await tryKnownFiles();
+            if (loaded === 0 && showStatus) setStatus('❌ Файлы не найдены. Используйте "Загрузить файл"', true);
+            else if (showStatus) setStatus(`✅ Загружено ${loaded} файлов`);
+        }
+    }
+
+    /* ========== ГЕОЛОКАЦИЯ ========== */
+    function setupGeolocation() {
+        const btn = document.getElementById('geolocationBtn');
+        if (!btn) return;
+        btn.addEventListener('click', () => {
+            if (!navigator.geolocation) { setStatus('❌ Браузер не поддерживает геолокацию', true); return; }
+            setStatus('📍 Определение местоположения...');
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+                    if (userPlacemark) myMap.geoObjects.remove(userPlacemark);
+                    userPlacemark = new ymaps.Placemark(
+                        [lat, lon],
+                        { hintContent: 'Моё местоположение', balloonContent: `Я здесь!<br>${lat.toFixed(6)}<br>${lon.toFixed(6)}` },
+                        {
+                            iconLayout: 'default#imageWithContent',
+                            iconImageSize: [40, 40],
+                            iconImageOffset: [-20, -20],
+                            iconContentOffset: [0, 0],
+                            iconContentLayout: ymaps.templateLayoutFactory.createClass(
+                                '<div style="font-size: 32px; filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));">🤖</div>'
+                            )
+                        }
+                    );
+                    myMap.geoObjects.add(userPlacemark);
+                    myMap.setCenter([lat, lon], 15);
+                    setStatus(`✅ Местоположение: ${lat.toFixed(4)}, ${lon.toFixed(4)}`);
+                },
+                (error) => {
+                    let msg = 'Ошибка геолокации';
+                    if (error.code === 1) msg = 'Доступ запрещён';
+                    else if (error.code === 2) msg = 'Позиция недоступна';
+                    else if (error.code === 3) msg = 'Время истекло';
+                    setStatus(`❌ ${msg}`, true);
+                },
+                { enableHighAccuracy: true, timeout: 10000 }
+            );
+        });
+    }
+
+    /* ========== ЗАГРУЗКА ФАЙЛОВ (СЛОИ) ========== */
+    function setupFileUpload(mapInstance) {
+        const input = document.getElementById('fileInput');
+        document.getElementById('uploadBtn').addEventListener('click', () => input.click());
+        input.addEventListener('change', (e) => {
+            const files = Array.from(e.target.files);
+            const isFirst = layers.length === 0;
+            files.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        if (data.type !== 'FeatureCollection' || !data.features) throw new Error('Неверный формат');
+                        let name = file.name.replace(/\.(geojson|json)$/i, '');
+                        if (name.length > 25) name = name.slice(0, 22) + '…';
+                        const color = getNextColor();
+                        addLayer(data, name, color, mapInstance, isFirst && idx === 0 && layers.length === 0, false);
+                        setStatus(`✅ Загружен: ${file.name}`);
+                    } catch (err) {
+                        alert(`Ошибка в ${file.name}: ${err.message}`);
+                        setStatus(`❌ Ошибка: ${file.name}`, true);
+                    }
+                };
+                reader.readAsText(file);
+            });
+            input.value = '';
+        });
+    }
+
+    /* =========================================================
+       DROPDOWN-МЕНЮ
+       ========================================================= */
+    function setupDropdowns() {
+        const exportWrap = document.getElementById('exportWrap');
+        const importWrap = document.getElementById('importWrap');
+        const exportBtn = document.getElementById('exportMainBtn');
+        const importBtn = document.getElementById('importMainBtn');
+        const exportMenu = document.getElementById('exportMenu');
+        const importMenu = document.getElementById('importMenu');
+
+        function closeAll(except) {
+            [exportWrap, importWrap].forEach(w => {
+                if (w !== except) {
+                    w.classList.remove('open');
+                    const m = w.querySelector('.dropdown-menu');
+                    if (m) m.classList.remove('drop-up');
+                }
+            });
+        }
+
+        function positionMenu(wrap, menu) {
+            menu.classList.remove('drop-up');
+            const rect = wrap.getBoundingClientRect();
+            const menuHeight = Math.min(menu.scrollHeight, 340);
+            const spaceBelow = window.innerHeight - rect.bottom;
+            if (spaceBelow < menuHeight + 10 && rect.top > menuHeight + 10) {
+                menu.classList.add('drop-up');
+            }
+        }
+
+        exportBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = exportWrap.classList.contains('open');
+            closeAll();
+            if (!isOpen) {
+                exportWrap.classList.add('open');
+                positionMenu(exportWrap, exportMenu);
+            }
+        });
+
+        importBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const isOpen = importWrap.classList.contains('open');
+            closeAll();
+            if (!isOpen) {
+                importWrap.classList.add('open');
+                positionMenu(importWrap, importMenu);
+            }
+        });
+
+        document.addEventListener('click', () => closeAll());
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape') closeAll();
+        });
+
+        exportMenu.addEventListener('click', (e) => {
+            const item = e.target.closest('.dropdown-item');
+            if (!item) return;
+            e.stopPropagation();
+            const action = item.dataset.action;
+            closeAll();
+            switch (action) {
+                case 'export-geojson': exportGeoJSON(); break;
+                case 'export-yandex':  copyRouteYandexLink(); break;
+                case 'export-gpx':     exportGPX(); break;
+                case 'export-kml':     exportKML(); break;
+                case 'export-csv':     exportCSV(); break;
+                case 'export-wkt':     exportWKT(); break;
+                case 'export-txt':     exportTXT(); break;
+            }
+        });
+
+        importMenu.addEventListener('click', (e) => {
+            const item = e.target.closest('.dropdown-item');
+            if (!item) return;
+            e.stopPropagation();
+            const action = item.dataset.action;
+            closeAll();
+            switch (action) {
+                case 'import-geojson': document.getElementById('impGeoJSONInput').click(); break;
+                case 'import-yandex':  openImportModal('link'); break;
+                case 'import-gpx':     document.getElementById('impGPXInput').click(); break;
+                case 'import-kml':     document.getElementById('impKMLInput').click(); break;
+                case 'import-csv':     document.getElementById('impCSVInput').click(); break;
+                case 'import-text':    openImportModal('text'); break;
+            }
+        });
+    }
+
+    /* =========================================================
+       ИНИЦИАЛИЗАЦИЯ
+       ========================================================= */
+    ymaps.ready(() => {
+        myMap = new ymaps.Map('map', {
+            center: [55.76, 37.64],
+            zoom: 10,
+            controls: ['zoomControl', 'fullscreenControl', 'typeSelector']
+        });
+        myMap.behaviors.enable(['drag', 'scrollZoom', 'dblClickZoom', 'multiTouch']);
+
+        setupWindows();
+        setupFileUpload(myMap);
+        setupGeolocation();
+        setupRoutePanel();
+        setupDropdowns();
+        updateRoute();
+        renderRouteList();
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && pendingInsertIndex !== null) {
+                cancelInsertMode();
+                flashRouteStatus('⏹ Режим вставки отменён');
+            }
+        });
+
+        setTimeout(() => fullScan(true), 500);
+    });
+
+    /* =========================================================
+       ОБРАБОТЧИКИ ПАНЕЛИ МАРШРУТА
+       ========================================================= */
+    function setupRoutePanel() {
+        const nameInput = document.getElementById('routeName');
+        const preview = document.getElementById('namePreview');
+        const addBtn = document.getElementById('addModeBtn');
+
+        const refreshPreview = () => {
+            preview.textContent = makeSafeName(nameInput.value || 'route');
+        };
+        nameInput.addEventListener('input', refreshPreview);
+        refreshPreview();
+
+        addBtn.addEventListener('click', () => {
+            addMode = !addMode;
+            addBtn.textContent = addMode ? '➕ Добавление: ВКЛ' : '⏸ Добавление: ВЫКЛ';
+            addBtn.classList.toggle('off', !addMode);
+            applyAddModeCursor();
+        });
+        applyAddModeCursor();
+
+        document.getElementById('clearRouteBtn').addEventListener('click', () => {
+            if (routePoints.length === 0) return;
+            if (confirm('Удалить все точки маршрута?')) clearRoute();
+        });
+
+        document.getElementById('cancelInsertBtn').addEventListener('click', () => {
+            cancelInsertMode();
+            flashRouteStatus('⏹ Режим вставки отменён');
+        });
+
+        document.getElementById('detailsBtnRoute').addEventListener('click', openDetailsModal);
+        document.getElementById('detailsBtnLayers').addEventListener('click', openDetailsModal);
+
+        const impGeoJSONInput = document.getElementById('impGeoJSONInput');
+        const impGPXInput = document.getElementById('impGPXInput');
+        const impKMLInput = document.getElementById('impKMLInput');
+        const impCSVInput = document.getElementById('impCSVInput');
+
+        impGeoJSONInput.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try {
+                const text = await readFileAsText(f);
+                const data = JSON.parse(text);
+                const pts = parseGeoJSONPoints(data);
+                applyImportedPoints(pts, 'GeoJSON');
+            } catch (err) {
+                flashRouteStatus('❌ Ошибка чтения GeoJSON: ' + err.message, true);
+            }
+            impGeoJSONInput.value = '';
+        });
+
+        impGPXInput.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try {
+                const text = await readFileAsText(f);
+                const pts = parseGPXPoints(text);
+                applyImportedPoints(pts, 'GPX');
+            } catch (err) {
+                flashRouteStatus('❌ Ошибка чтения GPX: ' + err.message, true);
+            }
+            impGPXInput.value = '';
+        });
+
+        impKMLInput.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try {
+                const text = await readFileAsText(f);
+                const pts = parseKMLPoints(text);
+                applyImportedPoints(pts, 'KML');
+            } catch (err) {
+                flashRouteStatus('❌ Ошибка чтения KML: ' + err.message, true);
+            }
+            impKMLInput.value = '';
+        });
+
+        impCSVInput.addEventListener('change', async (e) => {
+            const f = e.target.files[0];
+            if (!f) return;
+            try {
+                const text = await readFileAsText(f);
+                const pts = parseCSVPoints(text);
+                applyImportedPoints(pts, 'CSV');
+            } catch (err) {
+                flashRouteStatus('❌ Ошибка чтения CSV: ' + err.message, true);
+            }
+            impCSVInput.value = '';
+        });
+
+        document.getElementById('modalClose').addEventListener('click', closeImportModal);
+        document.getElementById('modalCancel').addEventListener('click', closeImportModal);
+        document.getElementById('modalAdd').addEventListener('click', () => applyModalImport('add'));
+        document.getElementById('modalReplace').addEventListener('click', () => applyModalImport('replace'));
+        document.getElementById('linkModal').addEventListener('click', (e) => {
+            if (e.target.id === 'linkModal') closeImportModal();
+        });
+        document.querySelectorAll('.modal-tab').forEach(t => {
+            t.addEventListener('click', () => openImportModal(t.dataset.mode));
+        });
+
+        document.getElementById('detailsClose').addEventListener('click', closeDetailsModal);
+        document.getElementById('detailsCloseBtn').addEventListener('click', closeDetailsModal);
+        document.getElementById('detailsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'detailsModal') closeDetailsModal();
+        });
+
+        myMap.events.add('click', (e) => {
+            const coords = e.get('coords');
+            if (pendingInsertIndex !== null) {
+                const idx = pendingInsertIndex;
+                addRoutePoint(coords[0], coords[1], false, idx);
+                pendingInsertIndex = idx + 1;
+                refreshInsertUI();
+                applyAddModeCursor();
+            } else if (addMode) {
+                addRoutePoint(coords[0], coords[1]);
+            }
+        });
+
+        document.getElementById('scanBtn').addEventListener('click', () => fullScan(true));
+    }
+</script>
+</body>
+</html>
